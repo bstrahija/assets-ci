@@ -40,8 +40,8 @@ class Assets {
 	
 	
 	// Config
-	public $combine 	= false;
-	public $minify 		= true; // Minify all
+	public $combine 	= true;
+	public $minify 		= false; // Minify all
 	public $minify_js 	= true;
 	public $minify_css 	= true;
 	public $html5 		= true; // Use HTML5 tags
@@ -162,7 +162,7 @@ class Assets {
 	/**
 	 *
 	 */
-	private function _get_css()
+	function _get_css()
 	{
 		$html = '';
 		
@@ -170,84 +170,19 @@ class Assets {
 			// Simply return a list of all css tags
 			if ($this->env == 'dev' or( ! $this->combine and ! $this->minify)) {
 				foreach ($this->_css as $css) {
-					$html .= '<link rel="stylesheet" href="'.reduce_double_slashes($this->css_url.'/'.$css).'">'.PHP_EOL;
+					$html .= $this->_tag($css);
 				} // end foreach
-			}
-			
-			// Process the files
-			else {
-				$last_modified 	= 0;
-				
-				if ($this->combine) {
-					// Find last modified file
-					foreach ($this->_css as $css) {
-						$last_modified 	= max($last_modified, filemtime(realpath($this->css_path.'/'.$css)));
-					} // end foreach
-					
-					// Now check if the file exists in the cache directory
-					$file_name = date('YmdHis', $last_modified).'.css';
-					$file_path = reduce_double_slashes($this->cache_path.'/'.$file_name);
-					if ( ! file_exists($file_path)) {
-						$processed 		= '';
-						
-						// Process files
-						foreach ($this->_css as $css) {
-							// Get file contents
-							$contents = read_file(reduce_double_slashes($this->css_path.'/'.$css));
-							
-							// Combine
-							$processed .= $contents;
-							
-						} // end foreach
-		
-						// Less
-						if ($this->less_css) 	$processed = $this->less->parse($processed);
-						
-						// Minify
-						if ($this->minify_css) 	$processed = $this->ci->cssmin->minify($processed);
-						
-						// And save the file
-						write_file($file_path, $processed);
-						
-					} // end if
-					
-					// HTML tag
-					$html .= '<link rel="stylesheet" href="'.reduce_double_slashes($this->cache_url.'/'.$file_name).'">'.PHP_EOL;
-				
-				}
-				else {
-					foreach ($this->_css as $css) {
-						$last_modified 	= filemtime(realpath($this->css_path.'/'.$css));
-						
-						// Now check if the file exists in the cache directory
-						$file 		= pathinfo($css);
-						$file_name 	= date('YmdHis', $last_modified).'.'.$file['filename'].'.css';
-						$file_path 	= reduce_double_slashes($this->cache_path.'/'.$file_name);
-						if ( ! file_exists($file_path)) {
-							// Get file contents
-							$processed = read_file(reduce_double_slashes($this->css_path.'/'.$css));
-							
-							// Less
-							if ($this->less_css) 	$processed = $this->less->parse($processed);
-							
-							// Minify
-							if ($this->minify_css) 	$processed = $this->ci->cssmin->minify($processed);
-							
-							// And save the file
-							write_file($file_path, $processed);
-							
-						} // end if
-						
-						// HTML tag
-						$html .= '<link rel="stylesheet" href="'.reduce_double_slashes($this->cache_url.'/'.$file_name).'">'.PHP_EOL;
-						
-					} // end foreach
-					
-				} // end if
-				
 			} // end if
 			
-		} // end if
+			// Try to cache assets and get html tag
+			$files = $this->_cache_assets($this->_css, 'css');
+			
+			// Add to html
+			foreach ($files as $file) {
+				$html .= $this->_tag($file);
+			} // end foreach
+			
+		} // end if;
 		
 		return $html;
 		
@@ -259,7 +194,7 @@ class Assets {
 	/**
 	 *
 	 */
-	private function _get_js()
+	function _get_js()
 	{
 		$html = '';
 		
@@ -267,82 +202,154 @@ class Assets {
 			// Simply return a list of all css tags
 			if ($this->env == 'dev' or( ! $this->combine and ! $this->minify)) {
 				foreach ($this->_js as $js) {
-					$html .= '<script src="'.reduce_double_slashes($this->js_url.'/'.$js).'"></script>'.PHP_EOL;
+					$html .= $this->_tag($js);
 				} // end foreach
-			
-			}
-			
-			// Process the files
-			else {
-				$last_modified 	= 0;
-				
-				if ($this->combine) {
-					// Find last modified file
-					foreach ($this->_js as $js) {
-						$last_modified 	= max($last_modified, filemtime(realpath($this->js_path.'/'.$js)));
-					} // end foreach
-					
-					// Now check if the file exists in the cache directory
-					$file_name = date('YmdHis', $last_modified).'.js';
-					$file_path = reduce_double_slashes($this->cache_path.'/'.$file_name);
-					if ( ! file_exists($file_path)) {
-						$processed 		= '';
-						
-						// Process files
-						foreach ($this->_js as $js) {
-							// Get file contents
-							$contents = read_file(reduce_double_slashes($this->js_path.'/'.$js));
-							
-							// Combine
-							$processed .= $contents;
-							
-						} // end foreach
-		
-						// Minify
-						if ($this->minify_js) 	$processed = $this->ci->jsmin->minify($processed);
-						
-						// And save the file
-						write_file($file_path, $processed);
-						
-					} // end if
-					
-					// HTML tag
-					$html .= '<script src="'.reduce_double_slashes($this->cache_url.'/'.$file_name).'"></script>'.PHP_EOL;
-				
-				}
-				else {
-					foreach ($this->_js as $js) {
-						$last_modified 	= filemtime(realpath($this->js_path.'/'.$js));
-						
-						// Now check if the file exists in the cache directory
-						$file 		= pathinfo($js);
-						$file_name 	= date('YmdHis', $last_modified).'.'.$file['filename'].'.js';
-						$file_path 	= reduce_double_slashes($this->cache_path.'/'.$file_name);
-						if ( ! file_exists($file_path)) {
-							// Get file contents
-							$processed = read_file(reduce_double_slashes($this->js_path.'/'.$js));
-							
-							// Minify
-							if ($this->minify_js) 	$processed = $this->ci->jsmin->minify($processed);
-							
-							// And save the file
-							write_file($file_path, $processed);
-							
-						} // end if
-						
-						// HTML tag
-						$html .= '<link rel="stylesheet" href="'.reduce_double_slashes($this->cache_url.'/'.$file_name).'">'.PHP_EOL;
-						
-					} // end foreach
-					
-				} // end if
-				
 			} // end if
-		} // end if
+			
+			// Try to cache assets and get html tag
+			$files = $this->_cache_assets($this->_js, 'js');
+			
+			// Add to html
+			foreach ($files as $file) {
+				$html .= $this->_tag($file);
+			} // end foreach
+			
+		} // end if;
 		
 		return $html;
 		
 	} // end _get_js()
+	
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	/**
+	 * Caches the assets if needed and returns a list files/paths
+	 */
+	private function _cache_assets($assets = null, $type = null)
+	{
+		$files = array(); // Will contain all the processed files
+		
+		if ($assets and $type) {
+			$last_modified = 0;
+			$path = ($type == 'css') ? $this->css_path : $this->js_path ;
+			
+			if ($this->combine) {
+				// Find last modified file
+				foreach ($assets as $asset) {
+					$last_modified 	= max($last_modified, filemtime(realpath($path.'/'.$asset)));
+				} // end foreach
+				
+				// Now check if the file exists in the cache directory
+				$file_name = date('YmdHis', $last_modified).'.'.$type;
+				$file_path = reduce_double_slashes($this->cache_path.'/'.$file_name);
+				if ( ! file_exists($file_path)) {
+					$data = '';
+					
+					// Get file contents
+					foreach ($assets as $asset) {
+						// Get file contents
+						$contents = read_file(reduce_double_slashes($path.'/'.$asset));
+						
+						// Combine
+						$data .= $contents;
+						
+					} // end foreach
+					
+					// Process
+					$data = $this->_process($data, $type);
+	
+					// And save the file
+					write_file($file_path, $data);
+					
+				} // end if
+				
+				// Add to files
+				$files[] = reduce_double_slashes($this->cache_url.'/'.$file_name);
+				
+			}
+			
+			// No combining
+			else {
+				foreach ($assets as $asset) {
+					$last_modified 	= filemtime(realpath($path.'/'.$asset));
+					
+					// Now check if the file exists in the cache directory
+					$file 		= pathinfo($asset);
+					$file_name 	= date('YmdHis', $last_modified).'.'.$file['filename'].'.'.$type;
+					$file_path 	= reduce_double_slashes($this->cache_path.'/'.$file_name);
+					if ( ! file_exists($file_path)) {
+						// Get file contents
+						$data = read_file(reduce_double_slashes($path.'/'.$asset));
+						
+						// Process
+						$data = $this->_process($data, $type);
+						
+						// And save the file
+						write_file($file_path, $data);
+						
+					} // end if
+					
+					// Add to files
+					$files[] = reduce_double_slashes($this->cache_url.'/'.$file_name);
+					
+				} // end foreach
+				
+			} // end if
+		} // end if
+		
+		return $files;
+		
+	} // end _cache_assets()
+	
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	/**
+	 * Minify, less
+	 *
+	 */
+	function _process($data = null, $type = null)
+	{
+		if ($type == 'css') {
+			if ($this->less_css) 						$data = $this->less->parse($data);
+			if ($this->minify or $this->minify_css) 	$data = $this->ci->cssmin->minify($data);
+		}
+		else {
+			if ($this->minify or $this->minify_js) 		$data = $this->ci->jsmin->minify($data);
+		
+		} // end if
+		
+		return $data;
+		
+	} // end _process()
+	
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	/**
+	 *
+	 */
+	private function _tag($file = null, $type = null)
+	{
+		// Try to figure out a type if none passed
+		if ( ! $type) {
+			$type = substr(strrchr($file,'.'),1);
+		} // end if
+		
+		// Now return html tag
+		if ($file and $type == 'css') {
+			return '<link rel="stylesheet" href="'.$file.'">'.PHP_EOL;
+			
+		}
+		elseif ($file and $type == 'js') {
+			return '<script src="'.$file.'"></script>'.PHP_EOL;
+			
+		} // end if
+		
+		return null;
+		
+	} // end _tag()
 	
 	
 	
