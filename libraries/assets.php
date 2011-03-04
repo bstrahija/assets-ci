@@ -164,7 +164,7 @@ class Assets {
 		
 		if ($this->_css) {
 			// Simply return a list of all css tags
-			if ($this->env == 'dev' or ( ! $this->combine and ( ! $this->minify and ! $this->minify_css))) {
+			if ($this->env == 'dev' or ( ! $this->combine and ( ! $this->minify and ! $this->minify_css) and ! $this->less_css)) {
 				foreach ($this->_css as $css) {
 					$html .= $this->_tag($this->css_url.'/'.$css);
 				} // end foreach
