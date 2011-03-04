@@ -1,4 +1,0 @@
-$(function() {
-	log('Script initialized.');
-	
-});

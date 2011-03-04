@@ -5,10 +5,8 @@
  *
  * @author 		Boris Strahija <boris@creolab.hr>
  * @copyright 	Copyright (c) 2010, Boris Strahija, Creo
- * @version 	0.1
+ * @version 	0.2
  */
-
-require APPPATH."libraries/lessc.php";
 
 class Assets {
 	
@@ -58,9 +56,7 @@ class Assets {
 		$this->ci =& get_instance();
 		
 		// Load the resources and config
-		$this->ci->config->load('assets');
-		$this->ci->load->helper(array('file', 'directory', 'string', 'assets'));
-		$this->ci->load->library(array('cssmin', 'jsmin'));
+		$this->ci->load->library(array('lessc', 'cssmin', 'jsmin'));
 		
 		// Initialize LessPHP
 		$this->less = new lessc();
@@ -168,19 +164,22 @@ class Assets {
 		
 		if ($this->_css) {
 			// Simply return a list of all css tags
-			if ($this->env == 'dev' or( ! $this->combine and ! $this->minify)) {
+			if ($this->env == 'dev' or ( ! $this->combine and ( ! $this->minify and ! $this->minify_css))) {
 				foreach ($this->_css as $css) {
-					$html .= $this->_tag($css);
+					$html .= $this->_tag($this->css_url.'/'.$css);
 				} // end foreach
+			
+			}
+			else {
+				// Try to cache assets and get html tag
+				$files = $this->_cache_assets($this->_css, 'css');
+				
+				// Add to html
+				foreach ($files as $file) {
+					$html .= $this->_tag($file);
+				} // end foreach
+			
 			} // end if
-			
-			// Try to cache assets and get html tag
-			$files = $this->_cache_assets($this->_css, 'css');
-			
-			// Add to html
-			foreach ($files as $file) {
-				$html .= $this->_tag($file);
-			} // end foreach
 			
 		} // end if;
 		
@@ -200,19 +199,22 @@ class Assets {
 		
 		if ($this->_js) {
 			// Simply return a list of all css tags
-			if ($this->env == 'dev' or( ! $this->combine and ! $this->minify)) {
+			if ($this->env == 'dev' or ( ! $this->combine and ( ! $this->minify and ! $this->minify_js))) {
 				foreach ($this->_js as $js) {
-					$html .= $this->_tag($js);
+					$html .= $this->_tag($this->js_url.'/'.$js);
 				} // end foreach
+			}
+			
+			else {
+				// Try to cache assets and get html tag
+				$files = $this->_cache_assets($this->_js, 'js');
+				
+				// Add to html
+				foreach ($files as $file) {
+					$html .= $this->_tag($file);
+				} // end foreach
+			
 			} // end if
-			
-			// Try to cache assets and get html tag
-			$files = $this->_cache_assets($this->_js, 'js');
-			
-			// Add to html
-			foreach ($files as $file) {
-				$html .= $this->_tag($file);
-			} // end foreach
 			
 		} // end if;
 		
@@ -250,14 +252,26 @@ class Assets {
 					foreach ($assets as $asset) {
 						// Get file contents
 						$contents = read_file(reduce_double_slashes($path.'/'.$asset));
+						$pathinfo = pathinfo($asset);
+						if ($pathinfo['dirname'] != '.') 	$base_url = $this->css_url.'/'.$pathinfo['dirname'];
+						else 								$base_url = $this->css_url;
 						
 						// Combine
-						$data .= $contents;
+						if ($type == 'css' and $this->less_css) {
+							$data .= $contents;
+						} else {
+							$data .= $this->_process($contents, $type, 'minify', $base_url);
+						} // end if
 						
 					} // end foreach
 					
-					// Process
-					$data = $this->_process($data, $type);
+					if ($type == 'css') {  }
+					
+					// Process with less and minify
+					if ($type == 'css') {
+						$data = $this->_process($data, $type, 'less');
+						$data = $this->_process($data, $type, 'minify', $base_url);
+					} // end if
 	
 					// And save the file
 					write_file($file_path, $data);
@@ -283,7 +297,7 @@ class Assets {
 						$data = read_file(reduce_double_slashes($path.'/'.$asset));
 						
 						// Process
-						$data = $this->_process($data, $type);
+						$data = $this->_process($data, $type, 'all', site_url($this->css_url));
 						
 						// And save the file
 						write_file($file_path, $data);
@@ -309,15 +323,23 @@ class Assets {
 	 * Minify, less
 	 *
 	 */
-	function _process($data = null, $type = null)
+	function _process($data = null, $type = null, $do = 'all', $base_url = null)
 	{
+		if ( ! $base_url) $base_url = $this->base_url;
+		
 		if ($type == 'css') {
-			if ($this->less_css) 						$data = $this->less->parse($data);
-			if ($this->minify or $this->minify_css) 	$data = $this->ci->cssmin->minify($data);
+			if ($this->less_css and ($do == 'all' or $do == 'less')) {
+				$data = $this->less->parse($data);
+			} // end if
+			
+			if (($this->minify or $this->minify_css) and ($do == 'all' or $do == 'minify')) {
+				$data = $this->ci->cssmin->minify($data, false, $base_url.'/');
+			} // end if
 		}
 		else {
-			if ($this->minify or $this->minify_js) 		$data = $this->ci->jsmin->minify($data);
-		
+			if (($this->minify or $this->minify_js) and ($do == 'all' or $do == 'minify')) {
+				$data = $this->ci->jsmin->minify($data);
+			} // end if
 		} // end if
 		
 		return $data;
@@ -430,13 +452,13 @@ class Assets {
 						// Delete the CSS files
 						if ($file_info['extension'] == 'css' and ( ! $type or $type == 'css')) {
 							unlink($file_path);
-							echo 'Deleted CSS: '.$file;
+							//echo 'Deleted CSS: '.$file;
 						} // end if
 						
 						// Delete the JS files
 						if ($file_info['extension'] == 'js' and ( ! $type or $type == 'js')) {
 							unlink($file_path);
-							echo 'Deleted JS: '.$file;
+							//echo 'Deleted JS: '.$file;
 						} // end if
 					} // end if
 					
