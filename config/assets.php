@@ -9,7 +9,7 @@
 |
 */
 
-$config['assets']['env'] 		= 'dev'; // Environment (if it's set to 'dev', no processing will be done)
+$config['assets']['env'] 		= 'production'; // Environment (if it's set to 'dev', no processing will be done)
 $config['assets']['combine'] 	= true;
 $config['assets']['minify_js'] 	= true;
 $config['assets']['minify_css'] = true;
