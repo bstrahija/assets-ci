@@ -37,7 +37,3 @@ The default configuration assumes your assets directory is in the root of your p
 		/js
 	/sparks
 	/system
-
-## Additional info
-
-If you set the minify options and combine option in your configuration to false, LessPHP won't work. This will work in future releases.
