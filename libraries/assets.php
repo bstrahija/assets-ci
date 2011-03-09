@@ -5,7 +5,7 @@
  *
  * @author 		Boris Strahija <boris@creolab.hr>
  * @copyright 	Copyright (c) 2010, Boris Strahija, Creo
- * @version 	0.2
+ * @version 	0.5
  */
 
 class Assets {

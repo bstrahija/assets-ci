@@ -5,7 +5,7 @@
  *
  * @author 		Boris Strahija <boris@creolab.hr>
  * @copyright 	Copyright (c) 2010, Boris Strahija
- * @version 	0.1
+ * @version 	0.5
  * 
  */
 
@@ -32,6 +32,19 @@ function display_js($assets = null)
 	$ci->assets->display_js($assets);
 	
 } // end display_js()
+
+
+/* ------------------------------------------------------------------------------------------ */
+
+/**
+ *
+ */
+function clear_cache($type = null)
+{
+	$ci =& get_instance();
+	$ci->assets->clear_cache($type);
+	
+} // end clear_cache()
 
 
 /* ------------------------------------------------------------------------------------------ */
