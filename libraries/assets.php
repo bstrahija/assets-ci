@@ -5,7 +5,7 @@
  *
  * @author 		Boris Strahija <boris@creolab.hr>
  * @copyright 	Copyright (c) 2010, Boris Strahija, Creo
- * @version 	0.5
+ * @version 	0.5.1
  */
 
 class Assets {
@@ -380,11 +380,21 @@ class Assets {
 		
 		// Now return html tag
 		if ($file and $type == 'css') {
-			return '<link rel="stylesheet" href="'.$file.'">'.PHP_EOL;
+			if ($this->html5) {
+				return '<link rel="stylesheet" href="'.$file.'">'.PHP_EOL;
+			}
+			else {
+				return '<link rel="stylesheet" type="text/css" href="'.$file.'" />'.PHP_EOL;
+			} // end if
 			
 		}
 		elseif ($file and $type == 'js') {
-			return '<script src="'.$file.'"></script>'.PHP_EOL;
+			if ($this->html5) {
+				return '<script src="'.$file.'"></script>'.PHP_EOL;
+			}
+			else {
+				return '<script src="'.$file.'" type="text/javascript" charset="utf-8"></script>'.PHP_EOL;
+			} // end if
 			
 		} // end if
 		

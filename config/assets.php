@@ -30,10 +30,11 @@ $config['assets']['auto_clear_js_cache']  = false;
 
 /*
 |--------------------------------------------------------------------------
-| Default paths and directories
+| Default paths and directories, tags
 |--------------------------------------------------------------------------
 |
 | Default directories containing the assets
+| Option to use HTML5 tags
 |
 */
 
@@ -41,5 +42,6 @@ $config['assets']['assets_dir'] = 'assets';
 $config['assets']['js_dir']     = 'js';
 $config['assets']['css_dir']    = 'css';
 $config['assets']['cache_dir']  = 'cache';
+$config['assets']['html5']      = true;
 
 
