@@ -1,120 +1,20 @@
 <?php
-
-/**
- * CodeIgniter Port of 'Minify_CSS' CSS Compression Library from Minify ( http://code.google.com/p/minify/ )
- * 
- * Minifies CSS, preserving comments as directed. Note: This port moves the Minify_CommentPreserver 
- * class into this file, and adds a simple meta class to access the normal minify_css class.
- * 
- * @author Tony Dewan <tony@tonydewan.com>
- * @version 1.1 (2009-01-28)
- * @license http://www.opensource.org/licenses/bsd-license.php BSD license, as per the original Minify_CSS class
- * 
- **/
-
-/*
-	===============================================================================================
-	 USAGE
-	===============================================================================================
-	
-	Load the library as normal:
-	-----------------------------------------------------------------------------------------------
-	$this->load->library('cssmin');
-	-----------------------------------------------------------------------------------------------
-	
-	Minify a string like so:
-	-----------------------------------------------------------------------------------------------
-	$this->cssmin->minify( file_get_contents('styles.css') );
-	-----------------------------------------------------------------------------------------------
-	
-	
-	There are two options:
-	
-	'preserveComments'
-	Boolean flag for preserving comments.  Only comments starting with /*! are preserved. 
-	Defaults to true.
-	
-	'relativePath'
-	String that will be prepended to all relative URIs in import/url declarations.  
-	Defaults to null.
-	
-	
-	The options can either be set globally using the config function:
-	-----------------------------------------------------------------------------------------------
-	$cssmin_options = array(
-		  'preserveComments'=> TRUE,
-		  'relativePath'=> 'http://www.example.com/styles/images/'
-	);
-	
-	$this->cssmin->config($cssmin_options);
-	-----------------------------------------------------------------------------------------------
-	
-	
-	Or on individual calls to the minify function:
-	-----------------------------------------------------------------------------------------------
-	$this->cssmin->minify( $string, FALSE, $path );
-	-----------------------------------------------------------------------------------------------
-	
-	NOTE: Global settings override settings in individual calls.
-	===============================================================================================
-*/
- 
- class cssmin {
- 	
- 	public function cssmin()
- 	{
- 		log_message('debug', 'CSSMin library initialized.');
- 	}
- 	
- 	
- 	public function config($config)
- 	{
-		foreach ($config as $key => $value)
-		{
-			$this->$key = $value;
-		}
- 	
- 	}
- 	
- 	public function minify($css, $preserveComments = TRUE, $relativePath = null)
- 	{	
- 		$c = ( isset($this->preserveComments) ) ? $this->preserveComments : $preserveComments;
- 		$p = ( isset($this->relativePath) ) ? $this->relativePath : $relativePath;
-
- 		$min = new Minify_CSS();
- 		return $min->minify($css, array('preserveComments'=> $c, 'prependRelativePath' => $p));
- 	}
- 
- }
-
-
 /**
  * Class Minify_CSS  
  * @package Minify
  */
 
 /**
- * Compress CSS
+ * Minify CSS
  *
- * This is a heavy regex-based removal of whitespace, unnecessary
- * comments and tokens, and some CSS value minimization, where practical.
- * Many steps have been taken to avoid breaking comment-based hacks, 
- * including the ie5/mac filter (and its inversion), but expect tricky
- * hacks involving comment tokens in 'content' value strings to break
- * minimization badly. A test suite is available.
+ * This class uses Minify_CSS_Compressor and Minify_CSS_UriRewriter to 
+ * minify CSS and rewrite relative URIs.
  * 
  * @package Minify
  * @author Stephen Clay <steve@mrclay.org>
  * @author http://code.google.com/u/1stvamp/ (Issue 64 patch)
  */
-class Minify_CSS {
-
-    /**
-     * Defines which class to call as part of callbacks, change this
-     * if you extend Minify_CSS
-     * @var string
-     */
-    protected static $className = 'Minify_CSS';
+class CSSMin {
     
     /**
      * Minify a CSS string
@@ -135,6 +35,16 @@ class Minify_CSS {
      * all relative URIs in import/url declarations to correctly point to
      * the desired files. For this to work, the files *must* exist and be
      * visible by the PHP process.
+     *
+     * 'symlinks': (default = array()) If the CSS file is stored in 
+     * a symlink-ed directory, provide an array of link paths to
+     * target paths, where the link paths are within the document root. Because 
+     * paths need to be normalized for this to work, use "//" to substitute 
+     * the doc root in the link paths (the array keys). E.g.:
+     * <code>
+     * array('//symlink' => '/real/target/path') // unix
+     * array('//static' => 'D:\\staticStorage')  // Windows
+     * </code>
      * 
      * @return string
      */
@@ -142,29 +52,106 @@ class Minify_CSS {
     {
         if (isset($options['preserveComments']) 
             && !$options['preserveComments']) {
-            return self::_minify($css, $options);    
+            $css = Minify_CSS_Compressor::process($css, $options);
+        } else {
+            $css = Minify_CommentPreserver::process(
+                $css
+                ,array('Minify_CSS_Compressor', 'process')
+                ,array($options)
+            );
         }
-
-        // recursive calls don't preserve comments
-        $options['preserveComments'] = false;
-        return Minify_CommentPreserver::process(
-            $css
-            ,array(self::$className, 'minify')
-            ,array($options)
-        );
+        if (! isset($options['currentDir']) && ! isset($options['prependRelativePath'])) {
+            return $css;
+        }
+        if (isset($options['currentDir'])) {
+            return Minify_CSS_UriRewriter::rewrite(
+                $css
+                ,$options['currentDir']
+                ,isset($options['docRoot']) ? $options['docRoot'] : $_SERVER['DOCUMENT_ROOT']
+                ,isset($options['symlinks']) ? $options['symlinks'] : array()
+            );  
+        } else {
+            return Minify_CSS_UriRewriter::prepend(
+                $css
+                ,$options['prependRelativePath']
+            );
+        }
     }
+}
+
+
+
+
+
+
+/**
+ * Class Minify_CSS_Compressor 
+ * @package Minify
+ */
+
+/**
+ * Compress CSS
+ *
+ * This is a heavy regex-based removal of whitespace, unnecessary
+ * comments and tokens, and some CSS value minimization, where practical.
+ * Many steps have been taken to avoid breaking comment-based hacks, 
+ * including the ie5/mac filter (and its inversion), but expect tricky
+ * hacks involving comment tokens in 'content' value strings to break
+ * minimization badly. A test suite is available.
+ * 
+ * @package Minify
+ * @author Stephen Clay <steve@mrclay.org>
+ * @author http://code.google.com/u/1stvamp/ (Issue 64 patch)
+ */
+class Minify_CSS_Compressor {
 
     /**
      * Minify a CSS string
      * 
      * @param string $css
      * 
-     * @param array $options To enable URL rewriting, set the value
-     * for key 'prependRelativePath'.
+     * @param array $options (currently ignored)
      * 
      * @return string
      */
-    protected static function _minify($css, $options) 
+    public static function process($css, $options = array())
+    {
+        $obj = new Minify_CSS_Compressor($options);
+        return $obj->_process($css);
+    }
+    
+    /**
+     * @var array options
+     */
+    protected $_options = null;
+    
+    /**
+     * @var bool Are we "in" a hack?
+     * 
+     * I.e. are some browsers targetted until the next comment?
+     */
+    protected $_inHack = false;
+    
+    
+    /**
+     * Constructor
+     * 
+     * @param array $options (currently ignored)
+     * 
+     * @return null
+     */
+    private function __construct($options) {
+        $this->_options = $options;
+    }
+    
+    /**
+     * Minify a CSS string
+     * 
+     * @param string $css
+     * 
+     * @return string
+     */
+    protected function _process($css)
     {
         $css = str_replace("\r\n", "\n", $css);
         
@@ -178,9 +165,8 @@ class Minify_CSS {
         $css = preg_replace('@:\\s*/\\*\\s*\\*/@', ':/*keep*/', $css);
         
         // apply callback to all valid comments (and strip out surrounding ws
-        self::$_inHack = false;
         $css = preg_replace_callback('@\\s*/\\*([\\s\\S]*?)\\*/\\s*@'
-            ,array(self::$className, '_commentCB'), $css);
+            ,array($this, '_commentCB'), $css);
 
         // remove ws around { } and last semicolon in declaration block
         $css = preg_replace('/\\s*{\\s*/', '{', $css);
@@ -207,7 +193,7 @@ class Minify_CSS {
                 \\s*
                 :
                 \\s*
-                (\\b|[#\'"])        # 3 = first character of a value
+                (\\b|[#\'"-])        # 3 = first character of a value
             /x', '$1$2:$3', $css);
         
         // remove ws in selectors
@@ -222,7 +208,7 @@ class Minify_CSS {
                 [^~>+,\\s]+      # selector part
                 {                # open declaration block
             /x'
-            ,array(self::$className, '_selectorsCB'), $css);
+            ,array($this, '_selectorsCB'), $css);
         
         // minimize hex colors
         $css = preg_replace('/([^=])#([a-f\\d])\\2([a-f\\d])\\3([a-f\\d])\\4([\\s;\\}])/i'
@@ -230,7 +216,7 @@ class Minify_CSS {
         
         // remove spaces between font families
         $css = preg_replace_callback('/font-family:([^;}]+)([;}])/'
-            ,array(self::$className, '_fontFamilyCB'), $css);
+            ,array($this, '_fontFamilyCB'), $css);
         
         $css = preg_replace('/@import\\s+url/', '@import url', $css);
         
@@ -247,21 +233,9 @@ class Minify_CSS {
             /x'
             ,"$1\n", $css);
         
-        $rewrite = false;
-        if (isset($options['prependRelativePath'])) {
-            self::$_tempPrepend = $options['prependRelativePath'];
-            $rewrite = true;
-        } elseif (isset($options['currentDir'])) {
-            self::$_tempCurrentDir = $options['currentDir'];
-            $rewrite = true;
-        }
-        if ($rewrite) {
-            $css = preg_replace_callback('/@import\\s+([\'"])(.*?)[\'"]/'
-                ,array(self::$className, '_urlCB'), $css);
-            $css = preg_replace_callback('/url\\(\\s*([^\\)\\s]+)\\s*\\)/'
-                ,array(self::$className, '_urlCB'), $css);
-        }
-        self::$_tempPrepend = self::$_tempCurrentDir = '';
+        // prevent triggering IE6 bug: http://www.crankygeek.com/ie6pebug/
+        $css = preg_replace('/:first-l(etter|ine)\\{/', ':first-l$1 {', $css);
+            
         return trim($css);
     }
     
@@ -272,38 +246,22 @@ class Minify_CSS {
      * 
      * @return string
      */
-    protected static function _selectorsCB($m)
+    protected function _selectorsCB($m)
     {
         // remove ws around the combinators
         return preg_replace('/\\s*([,>+~])\\s*/', '$1', $m[0]);
     }
     
     /**
-     * @var bool Are we "in" a hack? 
-     * 
-     * I.e. are some browsers targetted until the next comment?   
-     */
-    protected static $_inHack = false;
-    
-    /**
-     * @var string string to be prepended to relative URIs   
-     */
-    protected static $_tempPrepend = '';
-    
-    /**
-     * @var string directory of this stylesheet for rewriting purposes   
-     */
-    protected static $_tempCurrentDir = '';
-    
-    /**
      * Process a comment and return a replacement
      * 
      * @param array $m regex matches
      * 
-     * @return string   
+     * @return string
      */
-    protected static function _commentCB($m)
+    protected function _commentCB($m)
     {
+        $hasSurroundingWs = (trim($m[0]) !== $m[1]);
         $m = $m[1]; 
         // $m is the comment content w/o the surrounding tokens, 
         // but the return value will replace the entire comment.
@@ -318,7 +276,7 @@ class Minify_CSS {
             // component of http://tantek.com/CSS/Examples/midpass.html
             return '/*";}}/* */';
         }
-        if (self::$_inHack) {
+        if ($this->_inHack) {
             // inversion: feeding only to one browser
             if (preg_match('@
                     ^/               # comment started like /*/
@@ -328,72 +286,30 @@ class Minify_CSS {
                     /\\*             # ends like /*/ or /**/
                 @x', $m, $n)) {
                 // end hack mode after this comment, but preserve the hack and comment content
-                self::$_inHack = false;
+                $this->_inHack = false;
                 return "/*/{$n[1]}/**/";
             }
         }
         if (substr($m, -1) === '\\') { // comment ends like \*/
             // begin hack mode and preserve hack
-            self::$_inHack = true;
+            $this->_inHack = true;
             return '/*\\*/';
         }
         if ($m !== '' && $m[0] === '/') { // comment looks like /*/ foo */
             // begin hack mode and preserve hack
-            self::$_inHack = true;
+            $this->_inHack = true;
             return '/*/*/';
         }
-        if (self::$_inHack) {
+        if ($this->_inHack) {
             // a regular comment ends hack mode but should be preserved
-            self::$_inHack = false;
+            $this->_inHack = false;
             return '/**/';
         }
-        return ''; // remove all other comments
-    }
-    
-    protected static function _urlCB($m)
-    {
-        $isImport = (0 === strpos($m[0], '@import'));
-        if ($isImport) {
-            $quote = $m[1];
-            $url = $m[2];
-        } else {
-            // is url()
-            // $m[1] is either quoted or not
-            $quote = ($m[1][0] === "'" || $m[1][0] === '"')
-                ? $m[1][0]
-                : '';
-            $url = ($quote === '')
-                ? $m[1]
-                : substr($m[1], 1, strlen($m[1]) - 2);
-        }
-        if ('/' !== $url[0]) {
-            if (strpos($url, '//') > 0) {
-                // probably starts with protocol, do not alter
-            } else {
-                // relative URI, rewrite!
-                if (self::$_tempPrepend) {
-                    $url = self::$_tempPrepend . $url;    
-                } else {
-                    // rewrite absolute url from scratch!
-                    // prepend path with current dir separator (OS-independent)
-                    $path = self::$_tempCurrentDir 
-                        . DIRECTORY_SEPARATOR . strtr($url, '/', DIRECTORY_SEPARATOR);
-                    // strip doc root
-                    $path = substr($path, strlen(realpath($_SERVER['DOCUMENT_ROOT'])));
-                    // fix to absolute URL
-                    $url = strtr($path, DIRECTORY_SEPARATOR, '/');
-                    // remove /./ and /../ where possible
-                    $url = str_replace('/./', '/', $url);
-                    // inspired by patch from Oleg Cherniy
-                    do {
-                        $url = preg_replace('@/[^/]+/\\.\\./@', '/', $url, -1, $changed);
-                    } while ($changed);
-                }
-            }
-        }
-        return $isImport 
-            ? "@import {$quote}{$url}{$quote}"
-            : "url({$quote}{$url}{$quote})";
+        // Issue 107: if there's any surrounding whitespace, it may be important, so 
+        // replace the comment with a single space
+        return $hasSurroundingWs // remove all other comments
+            ? ' '
+            : '';
     }
     
     /**
@@ -403,7 +319,7 @@ class Minify_CSS {
      * 
      * @return string   
      */
-    protected static function _fontFamilyCB($m)
+    protected function _fontFamilyCB($m)
     {
         $m[1] = preg_replace('/
                 \\s*
@@ -417,6 +333,8 @@ class Minify_CSS {
         return 'font-family:' . $m[1] . $m[2];
     }
 }
+
+
 
 /**
  * Class Minify_CommentPreserver 
@@ -449,8 +367,7 @@ class Minify_CommentPreserver {
      * Process a string outside of C-style comments that begin with "/*!"
      *
      * On each non-empty string outside these comments, the given processor 
-     * function will be called. The first "!" will be removed from the 
-     * preserved comments, and the comments will be surrounded by 
+     * function will be called. The comments will be surrounded by 
      * Minify_CommentPreserver::$preprend and Minify_CommentPreserver::$append.
      * 
      * @param string $content
@@ -484,7 +401,7 @@ class Minify_CommentPreserver {
      * @param string $in input
      * 
      * @return array 3 elements are returned. If a YUI comment is found, the
-     * 2nd element is the comment and the 1st and 2nd are the surrounding
+     * 2nd element is the comment and the 1st and 3rd are the surrounding
      * strings. If no comment is found, the entire string is returned as the 
      * 1st element and the other two are false.
      */
@@ -498,12 +415,284 @@ class Minify_CommentPreserver {
         }
         $ret = array(
             substr($in, 0, $start)
-            ,self::$prepend . '/*' . substr($in, $start + 3, $end - $start - 1) . self::$append
+            ,self::$prepend . '/*!' . substr($in, $start + 3, $end - $start - 1) . self::$append
         );
         $endChars = (strlen($in) - $end - 2);
         $ret[] = (0 === $endChars)
             ? ''
             : substr($in, -$endChars);
         return $ret;
+    }
+}
+
+
+
+/**
+ * Class Minify_CSS_UriRewriter  
+ * @package Minify
+ */
+
+/**
+ * Rewrite file-relative URIs as root-relative in CSS files
+ *
+ * @package Minify
+ * @author Stephen Clay <steve@mrclay.org>
+ */
+class Minify_CSS_UriRewriter {
+    
+    /**
+     * Defines which class to call as part of callbacks, change this
+     * if you extend Minify_CSS_UriRewriter
+     * @var string
+     */
+    protected static $className = 'Minify_CSS_UriRewriter';
+    
+    /**
+     * rewrite() and rewriteRelative() append debugging information here
+     * @var string
+     */
+    public static $debugText = '';
+    
+    /**
+     * Rewrite file relative URIs as root relative in CSS files
+     * 
+     * @param string $css
+     * 
+     * @param string $currentDir The directory of the current CSS file.
+     * 
+     * @param string $docRoot The document root of the web site in which 
+     * the CSS file resides (default = $_SERVER['DOCUMENT_ROOT']).
+     * 
+     * @param array $symlinks (default = array()) If the CSS file is stored in 
+     * a symlink-ed directory, provide an array of link paths to
+     * target paths, where the link paths are within the document root. Because 
+     * paths need to be normalized for this to work, use "//" to substitute 
+     * the doc root in the link paths (the array keys). E.g.:
+     * <code>
+     * array('//symlink' => '/real/target/path') // unix
+     * array('//static' => 'D:\\staticStorage')  // Windows
+     * </code>
+     * 
+     * @return string
+     */
+    public static function rewrite($css, $currentDir, $docRoot = null, $symlinks = array()) 
+    {
+        self::$_docRoot = self::_realpath(
+            $docRoot ? $docRoot : $_SERVER['DOCUMENT_ROOT']
+        );
+        self::$_currentDir = self::_realpath($currentDir);
+        self::$_symlinks = array();
+        
+        // normalize symlinks
+        foreach ($symlinks as $link => $target) {
+            $link = ($link === '//')
+                ? self::$_docRoot
+                : str_replace('//', self::$_docRoot . '/', $link);
+            $link = strtr($link, '/', DIRECTORY_SEPARATOR);
+            self::$_symlinks[$link] = self::_realpath($target);
+        }
+        
+        self::$debugText .= "docRoot    : " . self::$_docRoot . "\n"
+                          . "currentDir : " . self::$_currentDir . "\n";
+        if (self::$_symlinks) {
+            self::$debugText .= "symlinks : " . var_export(self::$_symlinks, 1) . "\n";
+        }
+        self::$debugText .= "\n";
+        
+        $css = self::_trimUrls($css);
+        
+        // rewrite
+        $css = preg_replace_callback('/@import\\s+([\'"])(.*?)[\'"]/'
+            ,array(self::$className, '_processUriCB'), $css);
+        $css = preg_replace_callback('/url\\(\\s*([^\\)\\s]+)\\s*\\)/'
+            ,array(self::$className, '_processUriCB'), $css);
+
+        return $css;
+    }
+    
+    /**
+     * Prepend a path to relative URIs in CSS files
+     * 
+     * @param string $css
+     * 
+     * @param string $path The path to prepend.
+     * 
+     * @return string
+     */
+    public static function prepend($css, $path)
+    {
+        self::$_prependPath = $path;
+        
+        $css = self::_trimUrls($css);
+        
+        // append
+        $css = preg_replace_callback('/@import\\s+([\'"])(.*?)[\'"]/'
+            ,array(self::$className, '_processUriCB'), $css);
+        $css = preg_replace_callback('/url\\(\\s*([^\\)\\s]+)\\s*\\)/'
+            ,array(self::$className, '_processUriCB'), $css);
+
+        self::$_prependPath = null;
+        return $css;
+    }
+    
+    
+    /**
+     * @var string directory of this stylesheet
+     */
+    private static $_currentDir = '';
+    
+    /**
+     * @var string DOC_ROOT
+     */
+    private static $_docRoot = '';
+    
+    /**
+     * @var array directory replacements to map symlink targets back to their
+     * source (within the document root) E.g. '/var/www/symlink' => '/var/realpath'
+     */
+    private static $_symlinks = array();
+    
+    /**
+     * @var string path to prepend
+     */
+    private static $_prependPath = null;
+    
+    private static function _trimUrls($css)
+    {
+        return preg_replace('/
+            url\\(      # url(
+            \\s*
+            ([^\\)]+?)  # 1 = URI (assuming does not contain ")")
+            \\s*
+            \\)         # )
+        /x', 'url($1)', $css);
+    }
+    
+    private static function _processUriCB($m)
+    {
+        // $m matched either '/@import\\s+([\'"])(.*?)[\'"]/' or '/url\\(\\s*([^\\)\\s]+)\\s*\\)/'
+        $isImport = ($m[0][0] === '@');
+        // determine URI and the quote character (if any)
+        if ($isImport) {
+            $quoteChar = $m[1];
+            $uri = $m[2];
+        } else {
+            // $m[1] is either quoted or not
+            $quoteChar = ($m[1][0] === "'" || $m[1][0] === '"')
+                ? $m[1][0]
+                : '';
+            $uri = ($quoteChar === '')
+                ? $m[1]
+                : substr($m[1], 1, strlen($m[1]) - 2);
+        }
+        // analyze URI
+        if ('/' !== $uri[0]                  // root-relative
+            && false === strpos($uri, '//')  // protocol (non-data)
+            && 0 !== strpos($uri, 'data:')   // data protocol
+        ) {
+            // URI is file-relative: rewrite depending on options
+            $uri = (self::$_prependPath !== null)
+                ? (self::$_prependPath . $uri)
+                : self::rewriteRelative($uri, self::$_currentDir, self::$_docRoot, self::$_symlinks);
+        }
+        return $isImport
+            ? "@import {$quoteChar}{$uri}{$quoteChar}"
+            : "url({$quoteChar}{$uri}{$quoteChar})";
+    }
+    
+    /**
+     * Rewrite a file relative URI as root relative
+     *
+     * <code>
+     * Minify_CSS_UriRewriter::rewriteRelative(
+     *       '../img/hello.gif'
+     *     , '/home/user/www/css'  // path of CSS file
+     *     , '/home/user/www'      // doc root
+     * );
+     * // returns '/img/hello.gif'
+     * 
+     * // example where static files are stored in a symlinked directory
+     * Minify_CSS_UriRewriter::rewriteRelative(
+     *       'hello.gif'
+     *     , '/var/staticFiles/theme'
+     *     , '/home/user/www'
+     *     , array('/home/user/www/static' => '/var/staticFiles')
+     * );
+     * // returns '/static/theme/hello.gif'
+     * </code>
+     * 
+     * @param string $uri file relative URI
+     * 
+     * @param string $realCurrentDir realpath of the current file's directory.
+     * 
+     * @param string $realDocRoot realpath of the site document root.
+     * 
+     * @param array $symlinks (default = array()) If the file is stored in 
+     * a symlink-ed directory, provide an array of link paths to
+     * real target paths, where the link paths "appear" to be within the document 
+     * root. E.g.:
+     * <code>
+     * array('/home/foo/www/not/real/path' => '/real/target/path') // unix
+     * array('C:\\htdocs\\not\\real' => 'D:\\real\\target\\path')  // Windows
+     * </code>
+     * 
+     * @return string
+     */
+    public static function rewriteRelative($uri, $realCurrentDir, $realDocRoot, $symlinks = array())
+    {
+        // prepend path with current dir separator (OS-independent)
+        $path = strtr($realCurrentDir, '/', DIRECTORY_SEPARATOR)  
+            . DIRECTORY_SEPARATOR . strtr($uri, '/', DIRECTORY_SEPARATOR);
+        
+        self::$debugText .= "file-relative URI  : {$uri}\n"
+                          . "path prepended     : {$path}\n";
+        
+        // "unresolve" a symlink back to doc root
+        foreach ($symlinks as $link => $target) {
+            if (0 === strpos($path, $target)) {
+                // replace $target with $link
+                $path = $link . substr($path, strlen($target));
+                
+                self::$debugText .= "symlink unresolved : {$path}\n";
+                
+                break;
+            }
+        }
+        // strip doc root
+        $path = substr($path, strlen($realDocRoot));
+        
+        self::$debugText .= "docroot stripped   : {$path}\n";
+        
+        // fix to root-relative URI
+
+        $uri = strtr($path, '/\\', '//');
+
+        // remove /./ and /../ where possible
+        $uri = str_replace('/./', '/', $uri);
+        // inspired by patch from Oleg Cherniy
+        do {
+            $uri = preg_replace('@/[^/]+/\\.\\./@', '/', $uri, 1, $changed);
+        } while ($changed);
+      
+        self::$debugText .= "traversals removed : {$uri}\n\n";
+        
+        return $uri;
+    }
+    
+    /**
+     * Get realpath with any trailing slash removed. If realpath() fails,
+     * just remove the trailing slash.
+     * 
+     * @param string $path
+     * 
+     * @return mixed path with no trailing slash
+     */
+    protected static function _realpath($path)
+    {
+        $realPath = realpath($path);
+        if ($realPath !== false) {
+            $path = $realPath;
+        }
+        return rtrim($path, '/\\');
     }
 }
