@@ -5,7 +5,7 @@
  *
  * @author 		Boris Strahija <boris@creolab.hr>
  * @copyright 	Copyright (c) 2010, Boris Strahija, Creo
- * @version 	0.6
+ * @version 	0.6.0
  */
 
 define('ASSETS_VERSION', '0.6.0');
