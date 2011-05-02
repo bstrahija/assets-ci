@@ -293,7 +293,8 @@ class Assets {
 						// Combine
 						if ($type == 'css' and $this->less_css)
 						{
-							$data .= $contents;
+							//$data .= $contents;
+							$data .= $this->_process($contents, $type, 'minify', $base_url);
 						}
 						else
 						{
@@ -392,7 +393,9 @@ class Assets {
 			
 			if (($this->minify or $this->minify_css) and ($do == 'all' or $do == 'minify'))
 			{
-				$data = CSSMin::minify($data);
+				$data = CSSMin::minify($data, array(
+					'currentDir'          => str_replace(site_url(), '', $base_url).'/',
+				));
 			}
 		}
 		else
