@@ -5,10 +5,10 @@
  *
  * @author 		Boris Strahija <boris@creolab.hr>
  * @copyright 	Copyright (c) 2010, Boris Strahija, Creo
- * @version 	0.6.0
+ * @version 	0.6.1
  */
 
-define('ASSETS_VERSION', '0.6.0');
+define('ASSETS_VERSION', '0.6.1');
 
 
 class Assets {
@@ -290,23 +290,14 @@ class Assets {
 						if ($pathinfo['dirname'] != '.') 	$base_url = $this->css_url.'/'.$pathinfo['dirname'];
 						else 								$base_url = $this->css_url;
 						
-						// Combine
-						if ($type == 'css' and $this->less_css)
-						{
-							//$data .= $contents;
-							$data .= $this->_process($contents, $type, 'minify', $base_url);
-						}
-						else
-						{
-							$data .= $this->_process($contents, $type, 'minify', $base_url);
-						}
+						// Process asset
+						$data .= $this->_process($contents, $type, 'minify', $base_url);
 					}
 					
 					// Process with less and minify
 					if ($type == 'css')
 					{
 						$data = $this->_process($data, $type, 'less');
-						$data = $this->_process($data, $type, 'minify', $base_url);
 					}
 					
 					// Auto clear cache directory?
