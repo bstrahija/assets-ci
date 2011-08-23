@@ -5,10 +5,10 @@
  *
  * @author 		Boris Strahija <boris@creolab.hr>
  * @copyright 	Copyright (c) 2010, Boris Strahija, Creo
- * @version 	0.6.1
+ * @version 	0.6.3
  */
 
-define('ASSETS_VERSION', '0.6.1');
+define('ASSETS_VERSION', '0.6.3');
 
 
 class Assets {
