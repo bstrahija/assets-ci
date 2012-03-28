@@ -210,7 +210,17 @@ class Assets {
 			{
 				foreach (self::$_css as $css)
 				{
-					$html .= self::_tag(self::$css_url.'/'.$css);
+					if (self::$group)
+					{
+						foreach ($css as $group_css)
+						{
+							$html .= self::_tag(self::$css_url.'/'.$group_css);
+						}
+					}
+					else
+					{
+						$html .= self::_tag(self::$css_url.'/'.$css);
+					}
 				}
 			
 			}
@@ -218,7 +228,7 @@ class Assets {
 			{
 				// Try to cache assets and get html tag
 				$files = self::_cache_assets(self::$_css, 'css');
-				
+
 				// Add to html
 				foreach ($files as $file)
 				{
@@ -248,7 +258,17 @@ class Assets {
 			{
 				foreach (self::$_js as $js)
 				{
-					$html .= self::_tag(self::$js_url.'/'.$js);
+					if (self::$group)
+					{
+						foreach ($js as $group_js)
+						{
+							$html .= self::_tag(self::$js_url.'/'.$group_js);
+						}
+					}
+					else
+					{
+						$html .= self::_tag(self::$js_url.'/'.$js);
+					}
 				}
 			}
 			else
@@ -279,7 +299,7 @@ class Assets {
 	private static function _cache_assets($assets = null, $type = null)
 	{
 		$files = array(); // Will contain all the processed files
-		
+
 		if ($assets and $type)
 		{
 			$last_modified = 0;
