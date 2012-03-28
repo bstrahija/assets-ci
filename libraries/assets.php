@@ -682,7 +682,7 @@ class Assets {
 	 */
 	public static function configure($cfg = null)
 	{
-		$cfg = array_merge($cfg, config_item('assets'));
+		$cfg = array_merge(config_item('assets'), $cfg);
 		
 		if ($cfg and is_array($cfg))
 		{
