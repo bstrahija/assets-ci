@@ -34,7 +34,12 @@ class Assets {
 	public static $cache_path;
 	public static $cache_url;
 
-	public static $group = '';
+
+	// Prefixes and groups
+	public static $prefix_css;
+	public static $prefix_js;
+	public static $prefix_timestamp;
+	public static $group;
 	
 	
 	// Files that should be processed
@@ -292,7 +297,9 @@ class Assets {
 				}
 				
 				// Now check if the file exists in the cache directory
-				$file_name = date('YmdHis', $last_modified).'.'.$type;
+				if     (self::$prefix_css and $type == 'css') $file_name = self::$prefix_css.'.'.((self::$prefix_timestamp) ? date('YmdHis', $last_modified).'.' : '').$type;
+				elseif (self::$prefix_js  and $type == 'js')  $file_name = self::$prefix_js .'.'.((self::$prefix_timestamp) ? date('YmdHis', $last_modified).'.' : '').$type;
+				else                                          $file_name = date('YmdHis', $last_modified).'.'.$type;
 				$file_path = reduce_double_slashes(self::$cache_path.'/'.((self::$group) ? self::$group.'.' : '').$file_name);
 				
 				if ( ! file_exists($file_path))
@@ -360,7 +367,9 @@ class Assets {
 					
 					// Now check if the file exists in the cache directory
 					$file 		= pathinfo($asset);
-					$file_name 	= date('YmdHis', $last_modified).'.'.$file['filename'].'.'.$type;
+					if     (self::$prefix_css and $type == 'css') $file_name 	= self::$prefix_css.'.'.((self::$prefix_timestamp) ? date('YmdHis', $last_modified).'.' : '').$file['filename'].'.'.$type;
+					elseif (self::$prefix_js  and $type == 'js')  $file_name 	= self::$prefix_js .'.'.((self::$prefix_timestamp) ? date('YmdHis', $last_modified).'.' : '').$file['filename'].'.'.$type;
+					else                                          $file_name 	= date('YmdHis', $last_modified).'.'.$file['filename'].'.'.$type;
 					$file_path 	= reduce_double_slashes(self::$cache_path.'/'.((self::$group) ? self::$group.'.' : '').$file_name);
 					
 					if ( ! file_exists($file_path))
@@ -715,6 +724,35 @@ class Assets {
 		if ($path) self::$assets_dir = $path;
 
 		self::_paths();
+	}
+
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	/**
+	 * Set a prefix for cached files (instead of the timestamp)
+	 * @param string $prefix
+	 */
+	public static function set_prefix($prefix = null, $type = null)
+	{
+		self::init();
+
+		if ($prefix)
+		{
+			if ($type == 'css')
+			{
+				self::$prefix_css = $prefix;
+			}
+			elseif ($type == 'js')
+			{
+				self::$prefix_js  = $prefix;
+			}
+			else
+			{
+				self::$prefix_css = $prefix;
+				self::$prefix_js  = $prefix;
+			}
+		}
 	}
 	
 	

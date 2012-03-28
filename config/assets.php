@@ -43,4 +43,18 @@ $config['assets']['css_dir']    = 'css';
 $config['assets']['cache_dir']  = 'cache';
 $config['assets']['html5']      = true;
 
+/*
+|--------------------------------------------------------------------------
+| Cache prefix
+|--------------------------------------------------------------------------
+|
+| This prefix is added to cache files instead of the default timestamp
+| By default only the timestamp will be added, but if you setup a custom 
+| prefix, you can choose to remove the timestamp
+|
+*/
+
+$config['assets']['prefix_css']       = null;
+$config['assets']['prefix_js']        = null;
+$config['assets']['prefix_timestamp'] = true;
 
