@@ -30,6 +30,10 @@ class Assets {
 	public static $css_path;
 	public static $css_url;
 	
+	public static $img_dir;
+	public static $img_path;
+	public static $img_url;
+	
 	public static $cache_dir;
 	public static $cache_path;
 	public static $cache_url;
@@ -76,14 +80,21 @@ class Assets {
 		{
 			self::$_ci =& get_instance();
 
-			// Load the resources and config
-			self::$_ci->load->library(array('lessc'));
+			// Load LessPHP
+			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/lessc.php'));
+			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/lessc.php'));
 			
 			// Load JSMin
-			include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/jsmin.php'));
+			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/jsmin.php'));
+			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/jsmin.php'));
 			
 			// Load CSSMin
-			include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/cssmin.php'));
+			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/cssmin.php'));
+			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/cssmin.php'));
+			
+			// Load CoffeeScript
+			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/coffeescript/coffeescript.php'));
+			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/coffeescript/coffeescript.php'));
 			
 			// Add config to library
 			if ($cfg)
@@ -214,12 +225,30 @@ class Assets {
 					{
 						foreach ($css as $group_css)
 						{
-							$html .= self::_tag(self::$css_url.'/'.$group_css);
+							// Process LESS
+							if (pathinfo($group_css, PATHINFO_EXTENSION) === 'less')
+							{
+								$files = self::_cache_assets(array(self::$group => array($group_css)), 'css');
+								$html .= self::_tag($files[0]);
+							}
+							else
+							{
+								$html .= self::_tag(self::$css_url.'/'.$group_css);
+							}
 						}
 					}
 					else
 					{
-						$html .= self::_tag(self::$css_url.'/'.$css);
+						// Process LESS
+						if (pathinfo($css, PATHINFO_EXTENSION) === 'less')
+						{
+							$files = self::_cache_assets(array($css), 'css');
+							$html .= self::_tag($files[0]);
+						}
+						else
+						{
+							$html .= self::_tag(self::$css_url.'/'.$css);
+						}
 					}
 				}
 			
@@ -262,12 +291,30 @@ class Assets {
 					{
 						foreach ($js as $group_js)
 						{
-							$html .= self::_tag(self::$js_url.'/'.$group_js);
+							// Process CoffeeScript
+							if (pathinfo($group_js, PATHINFO_EXTENSION) === 'coffee')
+							{
+								$files = self::_cache_assets(array(self::$group => array($group_js)), 'js');
+								$html .= self::_tag($files[0]);
+							}
+							else
+							{
+								$html .= self::_tag(self::$js_url.'/'.$group_js);
+							}
 						}
 					}
 					else
 					{
-						$html .= self::_tag(self::$js_url.'/'.$js);
+						// Process CoffeeScript
+						if (pathinfo($js, PATHINFO_EXTENSION) === 'coffee')
+						{
+							$files = self::_cache_assets(array($js), 'js');
+							$html .= self::_tag($files[0]);
+						}
+						else
+						{
+							$html .= self::_tag(self::$js_url.'/'.$js);
+						}
 					}
 				}
 			}
@@ -305,7 +352,7 @@ class Assets {
 			$last_modified = 0;
 			$path          = ($type == 'css') ? self::$css_path : self::$js_path ;
 			
-			if (($type === 'css' and self::$combine_css) or($type === 'js' and self::$combine_js))
+			if (($type === 'css' and self::$combine_css) or ($type === 'js' and self::$combine_js))
 			{
 				// Check if it's a group (associative array)
 				if (self::$group) $assets = $assets[self::$group];
@@ -337,7 +384,22 @@ class Assets {
 						}
 						else
 						{
-							$contents = read_file(reduce_double_slashes($path.'/'.$asset));
+							if (pathinfo($asset, PATHINFO_EXTENSION) === 'coffee')
+							{
+								// Try to compile CoffeeScript
+								try {
+									$contents = read_file(reduce_double_slashes($path.'/'.$asset));
+									$contents = CoffeeScript\compile($contents);
+								}
+								catch (Exception $e)
+								{
+									$contents = '';
+								}
+							}
+							else
+							{
+								$contents = read_file(reduce_double_slashes($path.'/'.$asset));
+							}
 						}
 
 						$pathinfo = pathinfo($asset);
@@ -397,12 +459,27 @@ class Assets {
 						// Get file contents
 						if ($type == 'css')
 						{
-							$less     = new lessc(self::$css_path.'/'.$asset);
+							$less = new lessc(self::$css_path.'/'.$asset);
 							$data = $less->parse();
 						}
 						else
 						{
-							$data = read_file(reduce_double_slashes($path.'/'.$asset));
+							if (pathinfo($asset, PATHINFO_EXTENSION) === 'coffee')
+							{
+								// Try to compile CoffeeScript
+								try {
+									$data = read_file(reduce_double_slashes($path.'/'.$asset));
+									$data = CoffeeScript\compile($data);
+								}
+								catch (Exception $e)
+								{
+									$data = '';
+								}
+							}
+							else
+							{
+								$data = read_file(reduce_double_slashes($path.'/'.$asset));
+							}
 						}
 
 						// Process
@@ -481,7 +558,7 @@ class Assets {
 		// Try to figure out a type if none passed
 		if ( ! $type)
 		{
-			$type = substr(strrchr($file,'.'),1);
+			$type = substr(strrchr($file,'.'), 1);
 		}
 		
 		// Now return CSS html tag
@@ -500,8 +577,11 @@ class Assets {
 		}
 		
 		// And the JS html tag
-		elseif ($file and $type == 'js')
+		elseif ($file and ($type == 'js' or $type == 'coffee'))
 		{
+			// Replace coffee sufix
+			$file = str_replace('.coffee', '.js', $file);
+
 			if (self::$html5)
 			{
 				return '<script src="'.$file.'"></script>'.PHP_EOL;
@@ -705,6 +785,41 @@ class Assets {
 	
 	
 	/* ------------------------------------------------------------------------------------------ */
+	/* !/===> URL / Image helpers */
+	/* ------------------------------------------------------------------------------------------ */
+
+
+	/**
+	 * Return url to asset
+	 * @param  string $path
+	 */
+	public static function url($path = null)
+	{
+		return reduce_double_slashes(self::$base_url.'/'.$path);
+	}
+
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	/**
+	 * Return url to image, or event an entire tag
+	 * @param  string $path
+	 */
+	public static function img($path = null, $tag = false, $properties = null)
+	{
+		$img_path = reduce_double_slashes(self::$img_url.'/'.$path);
+
+		// Properties
+		if ($properties) $properties['src'] = $img_path;
+
+		// Tag?
+		if ($tag) return img($properties);
+		else      return $img_path;
+	}
+
+	
+	
+	/* ------------------------------------------------------------------------------------------ */
 	/* !/===> Configuration */
 	/* ------------------------------------------------------------------------------------------ */
 	
@@ -791,12 +906,14 @@ class Assets {
 		self::$base_url = reduce_double_slashes(config_item('base_url').'/'.self::$assets_dir);
 		
 		// And finally the paths and URL's to the css and js assets
-		self::$js_path 		= reduce_double_slashes(self::$base_path .'/'.self::$js_dir);
-		self::$js_url 		= reduce_double_slashes(self::$base_url  .'/'.self::$js_dir);
-		self::$css_path 	= reduce_double_slashes(self::$base_path .'/'.self::$css_dir);
-		self::$css_url 		= reduce_double_slashes(self::$base_url  .'/'.self::$css_dir);
-		self::$cache_path 	= reduce_double_slashes(self::$base_path .'/'.self::$cache_dir);
-		self::$cache_url 	= reduce_double_slashes(self::$base_url  .'/'.self::$cache_dir);
+		self::$js_path    = reduce_double_slashes(self::$base_path .'/'.self::$js_dir);
+		self::$js_url     = reduce_double_slashes(self::$base_url  .'/'.self::$js_dir);
+		self::$css_path   = reduce_double_slashes(self::$base_path .'/'.self::$css_dir);
+		self::$css_url    = reduce_double_slashes(self::$base_url  .'/'.self::$css_dir);
+		self::$img_path   = reduce_double_slashes(self::$base_path .'/'.self::$img_dir);
+		self::$img_url    = reduce_double_slashes(self::$base_url  .'/'.self::$img_dir);
+		self::$cache_path = reduce_double_slashes(self::$base_path .'/'.self::$cache_dir);
+		self::$cache_url  = reduce_double_slashes(self::$base_url  .'/'.self::$cache_dir);
 		
 		// Check if all directories exist
 		if ( ! is_dir(self::$js_path))

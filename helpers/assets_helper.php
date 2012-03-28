@@ -21,6 +21,19 @@ function assets_js($assets = null)
 	Assets::js($assets);
 }
 
+
+function assets_url($path = null)
+{
+	return Assets::url($path);
+}
+
+
+function assets_img($path = null, $tag = false, $properties = null)
+{
+	return Assets::img($path, $tag, $properties);
+}
+
+
 function clear_assets_cache($type = null)
 {
 	Assets::clear_cache($type);

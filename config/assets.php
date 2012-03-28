@@ -9,10 +9,10 @@
 |
 */
 
-$config['assets']['combine_css'] = true;
-$config['assets']['combine_js']  = true;
-$config['assets']['minify_css']  = true;
-$config['assets']['minify_js']   = true;
+$config['assets']['combine_css']   = true;
+$config['assets']['combine_js']    = true;
+$config['assets']['minify_css']    = true;
+$config['assets']['minify_js']     = true;
 
 /*
 |--------------------------------------------------------------------------
@@ -41,6 +41,7 @@ $config['assets']['assets_dir'] = 'assets';
 $config['assets']['js_dir']     = 'js';
 $config['assets']['css_dir']    = 'css';
 $config['assets']['cache_dir']  = 'cache';
+$config['assets']['img_dir']    = 'img';
 $config['assets']['html5']      = true;
 
 /*
