@@ -33,6 +33,8 @@ class Assets {
 	public static $cache_dir;
 	public static $cache_path;
 	public static $cache_url;
+
+	public static $group = '';
 	
 	
 	// Files that should be processed
@@ -50,6 +52,10 @@ class Assets {
 	public static $auto_clear_css_cache = false; // Or clear just cached CSS files
 	public static $auto_clear_js_cache  = false; // Or just cached JS files
 	public static $html5                = true;  // Use HTML5 tags
+
+	// Flags
+	public static $auto_cleared_css_cache = false;
+	public static $auto_cleared_js_cache  = false;
 	
 	
 	/* ------------------------------------------------------------------------------------------ */
@@ -96,7 +102,7 @@ class Assets {
 	 * Add new CSS file for processing
 	 * @param  string $file
 	 */
-	private static function _add_css($file = null)
+	private static function _add_css($file = null, $group = null)
 	{
 		if ($file)
 		{
@@ -105,14 +111,15 @@ class Assets {
 			{
 				foreach ($file as $f)
 				{
-					self::_add_css($f);
+					self::_add_css($f, $group);
 				}
 			}
 			
 			// Single file
 			else
 			{
-				self::$_css[] = $file;
+				if ($group) self::$_css[$group][] = $file;
+				else        self::$_css[]         = $file;
 			}
 		}
 	}
@@ -124,7 +131,7 @@ class Assets {
 	 * Add new JS file for processing
 	 * @param  string $file
 	 */
-	private static function _add_js($file = null)
+	private static function _add_js($file = null, $group = null)
 	{
 		if ($file)
 		{
@@ -133,14 +140,15 @@ class Assets {
 			{
 				foreach ($file as $f)
 				{
-					self::_add_js($f);
+					self::_add_js($f, $group);
 				}
 			}
 			
 			// Single file
 			else
 			{
-				self::$_js[] = $file;
+				if ($group) self::$_js[$group][] = $file;
+				else        self::$_js[]         = $file;
 			}
 		}
 	}
@@ -273,6 +281,9 @@ class Assets {
 			
 			if (self::$combine)
 			{
+				// Check if it's a group (associative array)
+				if (self::$group) $assets = $assets[self::$group];
+
 				// Find last modified file
 				foreach ($assets as $asset)
 				{
@@ -281,7 +292,7 @@ class Assets {
 				
 				// Now check if the file exists in the cache directory
 				$file_name = date('YmdHis', $last_modified).'.'.$type;
-				$file_path = reduce_double_slashes(self::$cache_path.'/'.$file_name);
+				$file_path = reduce_double_slashes(self::$cache_path.'/'.((self::$group) ? self::$group.'.' : '').$file_name);
 				
 				if ( ! file_exists($file_path))
 				{
@@ -316,14 +327,16 @@ class Assets {
 					}
 					
 					// Auto clear cache directory?
-					if ($type == 'css' and (self::$auto_clear_cache or self::$auto_clear_css_cache))
+					if ($type == 'css' and (self::$auto_clear_cache or self::$auto_clear_css_cache) and ! self::$auto_cleared_css_cache)
 					{
 						self::clear_css_cache();
+						self::$auto_cleared_css_cache = true;
 					}
 					
-					if ($type == 'js' and (self::$auto_clear_cache or self::$auto_clear_js_cache))
+					if ($type == 'js' and (self::$auto_clear_cache or self::$auto_clear_js_cache) and ! self::$auto_cleared_js_cache)
 					{
 						self::clear_js_cache();
+						self::$auto_cleared_js_cache = true;
 					}
 					
 					// And save the file
@@ -331,7 +344,7 @@ class Assets {
 				}
 				
 				// Add to files
-				$files[] = reduce_double_slashes(self::$cache_url.'/'.$file_name);
+				$files[] = reduce_double_slashes(self::$cache_url.'/'.((self::$group) ? self::$group.'.' : '').$file_name);
 			}
 			
 			// No combining
@@ -344,7 +357,7 @@ class Assets {
 					// Now check if the file exists in the cache directory
 					$file 		= pathinfo($asset);
 					$file_name 	= date('YmdHis', $last_modified).'.'.$file['filename'].'.'.$type;
-					$file_path 	= reduce_double_slashes(self::$cache_path.'/'.$file_name);
+					$file_path 	= reduce_double_slashes(self::$cache_path.'/'.((self::$group) ? self::$group.'.' : '').$file_name);
 					
 					if ( ! file_exists($file_path))
 					{
@@ -378,7 +391,7 @@ class Assets {
 					}
 					
 					// Add to files
-					$files[] = reduce_double_slashes(self::$cache_url.'/'.$file_name);
+					$files[] = reduce_double_slashes(self::$cache_url.'/'.((self::$group) ? self::$group.'.' : '').$file_name);
 				}
 			}
 		}
@@ -484,8 +497,9 @@ class Assets {
 	 * @param  array  $cfg
 	 * @return string
 	 */
-	public static function all($type = 'all', $css = null, $js = null, $cfg = null)
+	public static function all($type = 'all', $css = null, $js = null, $group = null, $cfg = null)
 	{
+		self::$group = $group;
 		self::init();
 
 		// Configuration
@@ -495,14 +509,14 @@ class Assets {
 		if ($css)
 		{
 			self::$_css = array();
-			self::_add_css($css);
+			self::_add_css($css, $group);
 		}
 		
 		// Overwrite JS files
 		if ($js)
 		{
 			self::$_js = array();
-			self::_add_js($js);
+			self::_add_js($js, $group);
 		}
 		
 		// Display all the tags
@@ -520,7 +534,22 @@ class Assets {
 	 */
 	public static function css($assets = null, $cfg = null)
 	{
-		self::all('css', $assets, null, $cfg);
+		self::all('css', $assets, null, null, $cfg);
+	}
+
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	/**
+	 * Display a group of CSS tags
+	 * @param  string $group
+	 * @param  array  $assets
+	 * @param  array  $cfg
+	 * @return string
+	 */
+	public static function css_group($group = null, $assets = null, $cfg = null)
+	{
+		self::all('css', $assets, null, $group, $cfg);
 	}
 	
 	
@@ -534,7 +563,22 @@ class Assets {
 	 */
 	public static function js($assets = null, $cfg = null)
 	{
-		self::all('js', null, $assets, $cfg);
+		self::all('js', null, $assets, null, $cfg);
+	}
+
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	/**
+	 * Display a group of JS tags
+	 * @param  string $group
+	 * @param  array  $assets
+	 * @param  array  $cfg
+	 * @return string
+	 */
+	public static function js_group($group = null, $assets = null, $cfg = null)
+	{
+		self::all('js', null, $assets, $group, $cfg);
 	}
 	
 	
@@ -663,7 +707,7 @@ class Assets {
 	public static function set_path($path = null)
 	{
 		self::init();
-		
+
 		if ($path) self::$assets_dir = $path;
 
 		self::_paths();
