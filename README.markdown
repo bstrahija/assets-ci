@@ -1,31 +1,35 @@
 # Simple Assets Library
 
 A simple assets library that has the ability to combine and minify your JavaScript and CSS assets.
-Additionally there's a <a href="http://leafo.net/lessphp/">LessPHP</a> compiler, based on the original Ruby implementation.
+Additionally there's a <a href="http://leafo.net/lessphp/">LessCSS</a> compiler and a <a href="https://github.com/alxlit/coffeescript-php">CoffeeScript</a> compiler.
 
 ## Third Party Libraries
 
-The libraries <a href="https://github.com/rgrove/jsmin-php/">JSMin</a>, <a href="http://code.google.com/p/cssmin/">CSSMin</a> and <a href="http://leafo.net/lessphp/">LessPHP</a> are all created by third parties, but they're included in this package for convenience.
+The libraries <a href="https://github.com/rgrove/jsmin-php/">JSMin</a>, <a href="http://code.google.com/p/cssmin/">CSSMin</a>, <a href="http://leafo.net/lessphp/">LessPHP</a> and <a href="https://github.com/alxlit/coffeescript-php">CoffeeScript-PHP</a> are all created by third parties, but they're included in this package for convenience.
 
 ## Requirements
 
-1. PHP 5.2+
+1. PHP 5.3+
 2. CodeIgniter 2.1
 3. Directory structure for the assets files, with a writeable cache directory
 
 ## Documentation
 
-Set all your preferences in the config file (assets directories, options to minify, combine and parse with LessPHP).
+Set all your preferences in the config file (assets directories, options to minify and combine).
 Now you can use the helper methods in your views like this:
 	
-	<?php Assets::css(array('init.css', 'style.css')); ?>
-	<?php Assets::js(array('libs/jquery.js', 'plugins.js', 'script.js')); ?>
+	<?php Assets::css(array('bootstrap.less', 'init.css', 'style.css')); ?>
+	<?php Assets::js(array('libs/jquery.js', 'script.js', 'bean.coffee')); ?>
 
 There's also a method for clearing all cached files:
 	
 	<?php Assets::clear_cache(); ?>
 
 The default configuration assumes your assets directory is in the root of your project. Be sure to set the permissions for the cache directory so it can be writeable.
+
+### LESS / CoffeeScript
+
+Files with extensions .less and .coffee will automatically be processed through appropriate libraries.
 
 ### Groups
 
@@ -51,6 +55,16 @@ Including files via *@import* should work just fine, just be sure to use proper 
     …
 
 Just keep in mind when using *@import* that those files are not scanned for changes and the cache wont be cleared in case you change a file that is included via *@import*.
+
+### Images
+
+A helper is also provided to display images from the directory setup in the config.
+
+    <?php echo Assets::img('logo.png'); ?>
+
+You can also generate the img tag directly using a similar syntax as in the CodeIgniter HTML helper.
+
+    <?php echo Assets::img('logo.png', true, array('title' => 'Logo')); ?>
 
 ## Frameworks / Libraries
 
