@@ -2,53 +2,29 @@
 
 /**
  * Assets Helper
+ * The function are pretty self-explanatory
  *
  * @author 		Boris Strahija <boris@creolab.hr>
- * @copyright 	Copyright (c) 2010, Boris Strahija
- * @version 	0.6.0
- * 
+ * @copyright 	Copyright (c) 2012, Boris Strahija, http://creolab.hr
+ * @version 	1.0.0
  */
 
 
-
-/* ------------------------------------------------------------------------------------------ */
-
-function display_css($assets = null)
+function assets_css($assets = null)
 {
-	$ci =& get_instance();
-	$ci->assets->display_css($assets);
-	
-} // end display_css()
+	Assets::css($assets);
+}
 
 
-/* ------------------------------------------------------------------------------------------ */
-
-/**
- *
- */
-function display_js($assets = null)
+function assets_js($assets = null)
 {
-	$ci =& get_instance();
-	$ci->assets->display_js($assets);
-	
-} // end display_js()
+	Assets::js($assets);
+}
 
-
-/* ------------------------------------------------------------------------------------------ */
-
-/**
- *
- */
-function clear_cache($type = null)
+function clear_assets_cache($type = null)
 {
-	$ci =& get_instance();
-	$ci->assets->clear_cache($type);
-	
-} // end clear_cache()
-
-
-/* ------------------------------------------------------------------------------------------ */
-
+	Assets::clear_cache($type);
+}
 
 
 /* End of file assets_helper.php */

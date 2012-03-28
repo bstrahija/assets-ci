@@ -4,95 +4,99 @@
  * Assets Library
  *
  * @author 		Boris Strahija <boris@creolab.hr>
- * @copyright 	Copyright (c) 2010, Boris Strahija, Creo
- * @version 	0.6.3
+ * @copyright 	Copyright (c) 2012, Boris Strahija, http://creolab.hr
+ * @version 	1.0.0
  */
 
-define('ASSETS_VERSION', '0.6.3');
+define('ASSETS_VERSION', '1.0.0');
 
 
 class Assets {
 	
-	protected $ci;
-	protected $less;
+	protected static $_ci;
+	protected static $_less;
 	
 	
 	// Paths and folders
-	public $assets_dir;
-	public $base_path;
-	public $base_url;
+	public static $assets_dir;
+	public static $base_path;
+	public static $base_url;
 	
-	public $js_dir;
-	public $js_path;
-	public $js_url;
+	public static $js_dir;
+	public static $js_path;
+	public static $js_url;
 	
-	public $css_dir;
-	public $css_path;
-	public $css_url;
+	public static $css_dir;
+	public static $css_path;
+	public static $css_url;
 	
-	public $cache_dir;
-	public $cache_path;
-	public $cache_url;
+	public static $cache_dir;
+	public static $cache_path;
+	public static $cache_url;
 	
 	
 	// Files that should be processed
-	private $_js;
-	private $_css;
+	private static $_js;
+	private static $_css;
+	private static $assets;
 	
 	
 	// Config
-	public $combine              = true;  // Combine files
-	public $minify               = false; // Minify all
-	public $minify_js            = true;
-	public $minify_css           = true;
-	public $auto_clear_cache     = false; // Automaticly clear all cache before creating new cache files
-	public $auto_clear_css_cache = false; // Or clear just cached CSS files
-	public $auto_clear_js_cache  = false; // Or just cached JS files
-	public $html5                = true;  // Use HTML5 tags
-	public $env                  = 'production';
+	public static $combine              = true;  // Combine files
+	public static $minify               = false; // Minify all
+	public static $minify_js            = true;
+	public static $minify_css           = true;
+	public static $auto_clear_cache     = false; // Automaticly clear all cache before creating new cache files
+	public static $auto_clear_css_cache = false; // Or clear just cached CSS files
+	public static $auto_clear_js_cache  = false; // Or just cached JS files
+	public static $html5                = true;  // Use HTML5 tags
 	
 	
 	/* ------------------------------------------------------------------------------------------ */
 	
 	/**
-	 *
+	 * Library initialization
+	 * @param  array $cfg
 	 */
-	public function __construct($cfg = null)
+	public static function init($cfg = null)
 	{
-		$this->ci =& get_instance();
-		
-		// Load the resources and config
-		$this->ci->load->library(array('lessc'));
-		
-		// Load JSMin
-		include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/jsmin.php'));
-		
-		// Load CSSMin
-		include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/cssmin.php'));
-		
-		// Initialize LessPHP
-		$this->less = new lessc();
-		
-		// Add config to library
-		if ($cfg)
+		if ( ! self::$_ci)
 		{
-			$this->configure(array_merge($cfg), config_item('assets'));
+			self::$_ci =& get_instance();
+
+			// Load the resources and config
+			self::$_ci->load->library(array('lessc'));
+			
+			// Load JSMin
+			include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/jsmin.php'));
+			
+			// Load CSSMin
+			include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/cssmin.php'));
+			
+			// Add config to library
+			if ($cfg)
+			{
+				self::configure(array_merge($cfg), config_item('assets'));
+			}
+			else
+			{
+				self::configure(config_item('assets'));
+			}
+			
+			// Initialize LessPHP
+			self::$_less = new lessc();
+			self::$_less->importDir = self::$css_path.'/';
 		}
-		else
-		{
-			$this->configure(config_item('assets'));
-		}
-		
-	} // __contruct()
+	}
 	
 	
 	/* ------------------------------------------------------------------------------------------ */
 	
 	/**
 	 * Add new CSS file for processing
-	 *
+	 * @param  string $file
 	 */
-	public function css($file = null)
+	private static function _add_css($file = null)
 	{
 		if ($file)
 		{
@@ -101,27 +105,26 @@ class Assets {
 			{
 				foreach ($file as $f)
 				{
-					$this->css($f);
+					self::_add_css($f);
 				}
 			}
 			
 			// Single file
 			else
 			{
-				$this->_css[] = $file;
+				self::$_css[] = $file;
 			}
 		}
-		
-	} // css()
+	}
 	
 	
 	/* ------------------------------------------------------------------------------------------ */
 	
 	/**
 	 * Add new JS file for processing
-	 *
+	 * @param  string $file
 	 */
-	public function js($file = null)
+	private static function _add_js($file = null)
 	{
 		if ($file)
 		{
@@ -130,18 +133,17 @@ class Assets {
 			{
 				foreach ($file as $f)
 				{
-					$this->js($f);
+					self::_add_js($f);
 				}
 			}
 			
 			// Single file
 			else
 			{
-				$this->_js[] = $file;
+				self::$_js[] = $file;
 			}
 		}
-				
-	} // js()
+	}
 	
 	
 	
@@ -151,121 +153,125 @@ class Assets {
 	
 	
 	/**
-	 *
+	 * Get tags
+	 * @param  string $type
+	 * @return string
 	 */
-	public function get($type = 'all')
+	public static function get($type = 'all')
 	{
 		$html = '';
 		
 		if ($type == 'all')
 		{
-			$html .= $this->_get_css();
-			$html .= $this->_get_js();
+			$html .= self::_get_css();
+			$html .= self::_get_js();
 		}
 		elseif ($type == 'css')
 		{
-			$html .= $this->_get_css();
+			$html .= self::_get_css();
 		}
 		elseif ($type == 'js')
 		{
-			$html .= $this->_get_js();
+			$html .= self::_get_js();
 		}
 		
 		return $html;
-		
-	} // get()
+	}
 	
 	
 	/* ------------------------------------------------------------------------------------------ */
 	
 	/**
-	 *
+	 * Get CSS tags
+	 * @return string
 	 */
-	function _get_css()
+	private static function _get_css()
 	{
 		$html = '';
 		
-		if ($this->_css)
+		if (self::$_css)
 		{
 			// Simply return a list of all css tags
-			if ($this->env == 'dev' or ( ! $this->combine and ( ! $this->minify and ! $this->minify_css) and ! $this->less_css))
+			if ( ! self::$combine and ( ! self::$minify and ! self::$minify_css))
 			{
-				foreach ($this->_css as $css)
+				foreach (self::$_css as $css)
 				{
-					$html .= $this->_tag($this->css_url.'/'.$css);
+					$html .= self::_tag(self::$css_url.'/'.$css);
 				}
 			
 			}
 			else
 			{
 				// Try to cache assets and get html tag
-				$files = $this->_cache_assets($this->_css, 'css');
+				$files = self::_cache_assets(self::$_css, 'css');
 				
 				// Add to html
 				foreach ($files as $file)
 				{
-					$html .= $this->_tag($file);
+					$html .= self::_tag($file);
 				}
 			}
 		}
 		
 		return $html;
-		
-	} // _get_css()
+	}
 	
 	
 	/* ------------------------------------------------------------------------------------------ */
 	
 	/**
-	 *
+	 * Get JS tags
+	 * @return string
 	 */
-	function _get_js()
+	private static function _get_js()
 	{
 		$html = '';
 		
-		if ($this->_js)
+		if (self::$_js)
 		{
 			// Simply return a list of all css tags
-			if ($this->env == 'dev' or ( ! $this->combine and ( ! $this->minify and ! $this->minify_js)))
+			if ( ! self::$combine and ( ! self::$minify and ! self::$minify_js))
 			{
-				foreach ($this->_js as $js)
+				foreach (self::$_js as $js)
 				{
-					$html .= $this->_tag($this->js_url.'/'.$js);
+					$html .= self::_tag(self::$js_url.'/'.$js);
 				}
 			}
 			else
 			{
 				// Try to cache assets and get html tag
-				$files = $this->_cache_assets($this->_js, 'js');
+				$files = self::_cache_assets(self::$_js, 'js');
 				
 				// Add to html
 				foreach ($files as $file)
 				{
-					$html .= $this->_tag($file);
+					$html .= self::_tag($file);
 				}
 			}
 		}
 		
 		return $html;
-		
-	} // _get_js()
+	}
 	
 	
 	/* ------------------------------------------------------------------------------------------ */
 	
 	/**
 	 * Caches the assets if needed and returns a list files/paths
+	 * @param  array  $assets
+	 * @param  string $type   [description]
+	 * @return array
 	 */
-	private function _cache_assets($assets = null, $type = null)
+	private static function _cache_assets($assets = null, $type = null)
 	{
 		$files = array(); // Will contain all the processed files
 		
 		if ($assets and $type)
 		{
 			$last_modified = 0;
-			$path          = ($type == 'css') ? $this->css_path : $this->js_path ;
+			$path          = ($type == 'css') ? self::$css_path : self::$js_path ;
 			
-			if ($this->combine)
+			if (self::$combine)
 			{
 				// Find last modified file
 				foreach ($assets as $asset)
@@ -275,7 +281,7 @@ class Assets {
 				
 				// Now check if the file exists in the cache directory
 				$file_name = date('YmdHis', $last_modified).'.'.$type;
-				$file_path = reduce_double_slashes($this->cache_path.'/'.$file_name);
+				$file_path = reduce_double_slashes(self::$cache_path.'/'.$file_name);
 				
 				if ( ! file_exists($file_path))
 				{
@@ -284,31 +290,40 @@ class Assets {
 					// Get file contents
 					foreach ($assets as $asset)
 					{
-						// Get file contents
-						$contents = read_file(reduce_double_slashes($path.'/'.$asset));
+						// Get file contents, for CSS file we use the LESS compiler
+						if ($type == 'css')
+						{
+							$less     = new lessc(self::$css_path.'/'.$asset);
+							$contents = $less->parse();
+						}
+						else
+						{
+							$contents = read_file(reduce_double_slashes($path.'/'.$asset));
+						}
+
 						$pathinfo = pathinfo($asset);
-						if ($pathinfo['dirname'] != '.') 	$base_url = $this->css_url.'/'.$pathinfo['dirname'];
-						else 								$base_url = $this->css_url;
+						if ($pathinfo['dirname'] != '.') 	$base_url = self::$css_url.'/'.$pathinfo['dirname'];
+						else 								$base_url = self::$css_url;
 						
 						// Process asset
-						$data .= $this->_process($contents, $type, 'minify', $base_url);
+						$data .= self::_process($contents, $type, 'minify', $base_url);
 					}
 					
-					// Process with less and minify
+					// Minify
 					if ($type == 'css')
 					{
-						$data = $this->_process($data, $type, 'less');
+						$data = self::_process($data, $type, 'minify');
 					}
 					
 					// Auto clear cache directory?
-					if ($type == 'css' and ($this->auto_clear_cache or $this->auto_clear_css_cache))
+					if ($type == 'css' and (self::$auto_clear_cache or self::$auto_clear_css_cache))
 					{
-						$this->clear_css_cache();
+						self::clear_css_cache();
 					}
 					
-					if ($type == 'js' and ($this->auto_clear_cache or $this->auto_clear_js_cache))
+					if ($type == 'js' and (self::$auto_clear_cache or self::$auto_clear_js_cache))
 					{
-						$this->clear_js_cache();
+						self::clear_js_cache();
 					}
 					
 					// And save the file
@@ -316,7 +331,7 @@ class Assets {
 				}
 				
 				// Add to files
-				$files[] = reduce_double_slashes($this->cache_url.'/'.$file_name);
+				$files[] = reduce_double_slashes(self::$cache_url.'/'.$file_name);
 			}
 			
 			// No combining
@@ -329,25 +344,33 @@ class Assets {
 					// Now check if the file exists in the cache directory
 					$file 		= pathinfo($asset);
 					$file_name 	= date('YmdHis', $last_modified).'.'.$file['filename'].'.'.$type;
-					$file_path 	= reduce_double_slashes($this->cache_path.'/'.$file_name);
+					$file_path 	= reduce_double_slashes(self::$cache_path.'/'.$file_name);
 					
 					if ( ! file_exists($file_path))
 					{
 						// Get file contents
-						$data = read_file(reduce_double_slashes($path.'/'.$asset));
-						
+						if ($type == 'css')
+						{
+							$less     = new lessc(self::$css_path.'/'.$asset);
+							$data = $less->parse();
+						}
+						else
+						{
+							$data = read_file(reduce_double_slashes($path.'/'.$asset));
+						}
+
 						// Process
-						$data = $this->_process($data, $type, 'all', site_url($this->css_url));
+						$data = self::_process($data, $type, 'all', site_url(self::$css_url));
 						
 						// Auto clear cache directory?
-						if ($type == 'css' and ($this->auto_clear_cache or $this->auto_clear_css_cache))
+						if ($type == 'css' and (self::$auto_clear_cache or self::$auto_clear_css_cache))
 						{
-							$this->clear_css_cache($asset);
+							self::clear_css_cache($asset);
 						}
 						
-						if ($type == 'js' and ($this->auto_clear_cache or $this->auto_clear_js_cache))
+						if ($type == 'js' and (self::$auto_clear_cache or self::$auto_clear_js_cache))
 						{
-							$this->clear_js_cache($asset);
+							self::clear_js_cache($asset);
 						}
 						
 						// And save the file
@@ -355,34 +378,32 @@ class Assets {
 					}
 					
 					// Add to files
-					$files[] = reduce_double_slashes($this->cache_url.'/'.$file_name);
+					$files[] = reduce_double_slashes(self::$cache_url.'/'.$file_name);
 				}
 			}
 		}
 		
 		return $files;
-		
-	} // _cache_assets()
+	}
 	
 	
 	/* ------------------------------------------------------------------------------------------ */
 	
 	/**
-	 * Minify, less
-	 *
+	 * Process files
+	 * @param  string $data     contents of file
+	 * @param  string $type     css or js
+	 * @param  string $do       what to do (all, minify)
+	 * @param  string $base_url URL to assets directory
+	 * @return string           returns the processed file data
 	 */
-	function _process($data = null, $type = null, $do = 'all', $base_url = null)
+	private static function _process($data = null, $type = null, $do = 'all', $base_url = null)
 	{
-		if ( ! $base_url) $base_url = $this->base_url;
+		if ( ! $base_url) $base_url = self::$base_url;
 		
 		if ($type == 'css')
 		{
-			if ($this->less_css and ($do == 'all' or $do == 'less'))
-			{
-				$data = $this->less->parse($data);
-			}
-			
-			if (($this->minify or $this->minify_css) and ($do == 'all' or $do == 'minify'))
+			if ((self::$minify or self::$minify_css) and ($do == 'all' or $do == 'minify'))
 			{
 				$data = CSSMin::minify($data, array(
 					'currentDir'          => str_replace(site_url(), '', $base_url).'/',
@@ -391,23 +412,25 @@ class Assets {
 		}
 		else
 		{
-			if (($this->minify or $this->minify_js) and ($do == 'all' or $do == 'minify'))
+			if ((self::$minify or self::$minify_js) and ($do == 'all' or $do == 'minify'))
 			{
 				$data = JSMin::minify($data);
 			}
 		}
 		
 		return $data;
-		
-	} // _process()
+	}
 	
 	
 	/* ------------------------------------------------------------------------------------------ */
 	
 	/**
-	 *
+	 * Generates assets tags
+	 * @param  string $file
+	 * @param  string $type
+	 * @return string
 	 */
-	private function _tag($file = null, $type = null)
+	private static function _tag($file = null, $type = null)
 	{
 		// Try to figure out a type if none passed
 		if ( ! $type)
@@ -416,9 +439,12 @@ class Assets {
 		}
 		
 		// Now return CSS html tag
-		if ($file and $type == 'css')
+		if ($file and ($type == 'css' or $type == 'less'))
 		{
-			if ($this->html5) {
+			// Replace less sufix
+			$file = str_replace('.less', '.css', $file);
+
+			if (self::$html5) {
 				return '<link rel="stylesheet" href="'.$file.'">'.PHP_EOL;
 			}
 			else
@@ -430,7 +456,7 @@ class Assets {
 		// And the JS html tag
 		elseif ($file and $type == 'js')
 		{
-			if ($this->html5)
+			if (self::$html5)
 			{
 				return '<script src="'.$file.'"></script>'.PHP_EOL;
 			}
@@ -441,8 +467,7 @@ class Assets {
 		}
 		
 		return null;
-		
-	} // _tag()
+	}
 	
 	
 	
@@ -452,55 +477,65 @@ class Assets {
 	
 	
 	/**
-	 *
+	 * Simply displays the generated tags
+	 * @param  string $type which assets should be displayed
+	 * @param  mixed  $css  CSS files
+	 * @param  mixed  $js   JS files
+	 * @param  array  $cfg
+	 * @return string
 	 */
-	public function display($type = 'all', $css = null, $js = null, $cfg = null)
+	public static function all($type = 'all', $css = null, $js = null, $cfg = null)
 	{
+		self::init();
+
 		// Configuration
-		if ($cfg) $this->configure($cfg);
-		
+		if ($cfg) self::configure($cfg);
+
 		// Overwrite CSS files
 		if ($css)
 		{
-			$this->_css = array();
-			$this->css($css);
+			self::$_css = array();
+			self::_add_css($css);
 		}
 		
 		// Overwrite JS files
 		if ($js)
 		{
-			$this->_js = array();
-			$this->js($js);
+			self::$_js = array();
+			self::_add_js($js);
 		}
 		
 		// Display all the tags
-		echo $this->get($type);
-		
-	} // display()
+		echo self::get($type);
+	}
 	
 	
 	/* ------------------------------------------------------------------------------------------ */
 	
 	/**
-	 *
+	 * Display CSS tags
+	 * @param  array  $assets
+	 * @param  array  $cfg
+	 * @return string
 	 */
-	public function display_css($assets = null, $cfg = null)
+	public static function css($assets = null, $cfg = null)
 	{
-		$this->display('css', $assets, null, $cfg);
-		
-	} // display_css()
+		self::all('css', $assets, null, $cfg);
+	}
 	
 	
 	/* ------------------------------------------------------------------------------------------ */
 	
 	/**
-	 *
+	 * Display JS tags
+	 * @param  array  $assets
+	 * @param  array  $cfg
+	 * @return string
 	 */
-	public function display_js($assets = null, $cfg = null)
+	public static function js($assets = null, $cfg = null)
 	{
-		$this->display('js', null, $assets, $cfg);
-		
-	} // display_js()
+		self::all('js', null, $assets, $cfg);
+	}
 	
 	
 	
@@ -509,11 +544,15 @@ class Assets {
 	/* ------------------------------------------------------------------------------------------ */
 	
 	/**
-	 *
+	 * Delete cached files
+	 * @param  string $type
+	 * @param  string $asset_file
 	 */
-	public function clear_cache($type = null, $asset_file = null)
+	public static function clear_cache($type = null, $asset_file = null)
 	{
-		$files = directory_map($this->cache_path, 1);
+		self::init();
+
+		$files = directory_map(self::$cache_path, 1);
 		
 		if ($files)
 		{
@@ -521,7 +560,7 @@ class Assets {
 			{
 				if ( ! is_array($file))
 				{
-					$file_path = reduce_double_slashes($this->cache_path.'/'.$file);
+					$file_path = reduce_double_slashes(self::$cache_path.'/'.$file);
 					$file_info = pathinfo($file_path);
 					
 					// Clear single file cache
@@ -560,32 +599,31 @@ class Assets {
 				}
 			}
 		}
-		
-	} // clear_cache()
+	}
 	
 	
 	/* ------------------------------------------------------------------------------------------ */
 	
 	/**
-	 *
+	 * Delete cached CSS files
+	 * @param  string $asset_file
 	 */
-	public function clear_css_cache($asset_file = null)
+	public static function clear_css_cache($asset_file = null)
 	{
-		return $this->clear_cache('css', $asset_file);
-		
-	} // empty_css_cache()
+		return self::clear_cache('css', $asset_file);
+	}
 	
 	
 	/* ------------------------------------------------------------------------------------------ */
 	
 	/**
-	 *
+	 * Delete cached JS files
+	 * @param  string $asset_file
 	 */
-	public function clear_js_cache($asset_file = null)
+	public static function clear_js_cache($asset_file = null)
 	{
-		return $this->clear_cache('js', $asset_file);
-		
-	} // empty_js_cache()
+		return self::clear_cache('js', $asset_file);
+	}
 	
 	
 	
@@ -595,10 +633,10 @@ class Assets {
 	
 	
 	/**
-	 * Configure the library
-	 *
+	 * Library configuration
+	 * @param  array  $cfg
 	 */
-	public function configure($cfg = null)
+	public static function configure($cfg = null)
 	{
 		$cfg = array_merge($cfg, config_item('assets'));
 		
@@ -606,72 +644,87 @@ class Assets {
 		{
 			foreach ($cfg as $key=>$val)
 			{
-				$this->$key = $val;
+				self::$$key = $val;
 				//echo 'CONFIG: ', $key, ' :: ', $val, '<br>';
 			}
 		}
-		
+
 		// Prepare all the paths and URI's
-		$this->_paths();
+		self::_paths();
+	}
+
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	/**
+	 * Set a different assets path
+	 * @param string $path
+	 */
+	public static function set_path($path = null)
+	{
+		self::init();
 		
-	} // configure()
+		if ($path) self::$assets_dir = $path;
+
+		self::_paths();
+	}
 	
 	
 	/* ------------------------------------------------------------------------------------------ */
 	
 	/**
-	 *
+	 * Setup paths
+	 * @return [type] [description]
 	 */
-	private function _paths()
+	private static function _paths()
 	{
 		// Set the assets base path
-		$this->base_path = reduce_double_slashes(realpath($this->assets_dir));
+		self::$base_path = reduce_double_slashes(realpath(self::$assets_dir));
 		
 		// Now set the assets base URL
-		$this->base_url = reduce_double_slashes(config_item('base_url').'/'.$this->assets_dir);
+		self::$base_url = reduce_double_slashes(config_item('base_url').'/'.self::$assets_dir);
 		
 		// And finally the paths and URL's to the css and js assets
-		$this->js_path 		= reduce_double_slashes($this->base_path .'/'.$this->js_dir);
-		$this->js_url 		= reduce_double_slashes($this->base_url  .'/'.$this->js_dir);
-		$this->css_path 	= reduce_double_slashes($this->base_path .'/'.$this->css_dir);
-		$this->css_url 		= reduce_double_slashes($this->base_url  .'/'.$this->css_dir);
-		$this->cache_path 	= reduce_double_slashes($this->base_path .'/'.$this->cache_dir);
-		$this->cache_url 	= reduce_double_slashes($this->base_url  .'/'.$this->cache_dir);
+		self::$js_path 		= reduce_double_slashes(self::$base_path .'/'.self::$js_dir);
+		self::$js_url 		= reduce_double_slashes(self::$base_url  .'/'.self::$js_dir);
+		self::$css_path 	= reduce_double_slashes(self::$base_path .'/'.self::$css_dir);
+		self::$css_url 		= reduce_double_slashes(self::$base_url  .'/'.self::$css_dir);
+		self::$cache_path 	= reduce_double_slashes(self::$base_path .'/'.self::$cache_dir);
+		self::$cache_url 	= reduce_double_slashes(self::$base_url  .'/'.self::$cache_dir);
 		
 		// Check if all directories exist
-		if ( ! is_dir($this->js_path))
+		if ( ! is_dir(self::$js_path))
 		{
-			if ( ! @mkdir($this->js_path, 0755))    exit('Error with JS directory.');
+			if ( ! @mkdir(self::$js_path, 0755))    exit('Error with JS directory.');
 		}
 		
-		if ( ! is_dir($this->css_path))
+		if ( ! is_dir(self::$css_path))
 		{
-			if ( ! @mkdir($this->css_path, 0755))   exit('Error with CSS directory.');
+			if ( ! @mkdir(self::$css_path, 0755))   exit('Error with CSS directory.');
 		}
 		
-		if ( ! is_dir($this->cache_path))
+		if ( ! is_dir(self::$cache_path))
 		{
-			if ( ! @mkdir($this->cache_path, 0777)) exit('Error with CACHE directory.');
+			if ( ! @mkdir(self::$cache_path, 0777)) exit('Error with CACHE directory.');
 		}
 		
 		// Try to make the cache direcory writable
-		if (is_dir($this->cache_path) and ! is_really_writable($this->cache_path))
+		if (is_dir(self::$cache_path) and ! is_really_writable(self::$cache_path))
 		{
-			@chmod($this->cache_path, 0777);
+			@chmod(self::$cache_path, 0777);
 		}
 		
 		// If it's still not writable throw error
-		if ( ! is_dir($this->cache_path) or ! is_really_writable($this->cache_path))
+		if ( ! is_dir(self::$cache_path) or ! is_really_writable(self::$cache_path))
 		{
 			exit('Error with CACHE directory.');
 		}
-		
-	} // _paths()
+	}
 	
 	
 	/* ------------------------------------------------------------------------------------------ */
 	
-} //end Assets
+}
 
 
 /* End of file assets.php */
