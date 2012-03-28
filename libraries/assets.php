@@ -44,7 +44,8 @@ class Assets {
 	
 	
 	// Config
-	public static $combine              = true;  // Combine files
+	public static $combine_css          = true;  // Combine CSS files
+	public static $combine_js           = true;  // Combine JS files
 	public static $minify               = false; // Minify all
 	public static $minify_js            = true;
 	public static $minify_css           = true;
@@ -200,7 +201,7 @@ class Assets {
 		if (self::$_css)
 		{
 			// Simply return a list of all css tags
-			if ( ! self::$combine and ( ! self::$minify and ! self::$minify_css))
+			if ( ! self::$combine_css and ( ! self::$minify and ! self::$minify_css))
 			{
 				foreach (self::$_css as $css)
 				{
@@ -238,7 +239,7 @@ class Assets {
 		if (self::$_js)
 		{
 			// Simply return a list of all css tags
-			if ( ! self::$combine and ( ! self::$minify and ! self::$minify_js))
+			if ( ! self::$combine_js and ( ! self::$minify and ! self::$minify_js))
 			{
 				foreach (self::$_js as $js)
 				{
@@ -279,7 +280,7 @@ class Assets {
 			$last_modified = 0;
 			$path          = ($type == 'css') ? self::$css_path : self::$js_path ;
 			
-			if (self::$combine)
+			if (($type === 'css' and self::$combine_css) or($type === 'js' and self::$combine_js))
 			{
 				// Check if it's a group (associative array)
 				if (self::$group) $assets = $assets[self::$group];
@@ -350,6 +351,9 @@ class Assets {
 			// No combining
 			else
 			{
+				// Check if it's a group (associative array)
+				if (self::$group) $assets = $assets[self::$group];
+				
 				foreach ($assets as $asset)
 				{
 					$last_modified 	= filemtime(realpath($path.'/'.$asset));
