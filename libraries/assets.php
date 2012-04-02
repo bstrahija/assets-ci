@@ -363,12 +363,14 @@ class Assets {
 					$last_modified 	= max($last_modified, filemtime(realpath($path.'/'.$asset)));
 				}
 				
-				// Now check if the file exists in the cache directory
-				if     (self::$prefix_css and $type == 'css') $file_name = self::$prefix_css.'.'.((self::$prefix_timestamp) ? date('YmdHis', $last_modified).'.' : '').$type;
-				elseif (self::$prefix_js  and $type == 'js')  $file_name = self::$prefix_js .'.'.((self::$prefix_timestamp) ? date('YmdHis', $last_modified).'.' : '').$type;
-				else                                          $file_name = date('YmdHis', $last_modified).'.'.$type;
+				// Build the filename and path
+				if     (self::$prefix_css and $type == 'css')       $file_name = self::$prefix_css.'.'.((self::$prefix_timestamp) ? date('YmdHis', $last_modified).'.' : '').$type;
+				elseif (self::$prefix_js  and $type == 'js')        $file_name = self::$prefix_js .'.'.((self::$prefix_timestamp) ? date('YmdHis', $last_modified).'.' : '').$type;
+				elseif (self::$group and ! self::$prefix_timestamp) $file_name = $type;
+				else                                                $file_name = date('YmdHis', $last_modified).'.'.$type;
 				$file_path = reduce_double_slashes(self::$cache_path.'/'.((self::$group) ? self::$group.'.' : '').$file_name);
 				
+				// Now check if the file exists in the cache directory
 				if ( ! file_exists($file_path))
 				{
 					$data = '';
