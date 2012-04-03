@@ -62,6 +62,7 @@ class Assets {
 	public static $auto_clear_css_cache = false; // Or clear just cached CSS files
 	public static $auto_clear_js_cache  = false; // Or just cached JS files
 	public static $html5                = true;  // Use HTML5 tags
+	public static $enable_coffeescript  = true;  // Enable CoffeeScript parser
 
 	// Flags
 	public static $auto_cleared_css_cache = false;
@@ -92,10 +93,6 @@ class Assets {
 			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/cssmin.php'));
 			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/cssmin.php'));
 			
-			// Load CoffeeScript
-			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/coffeescript/coffeescript.php'));
-			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/coffeescript/coffeescript.php'));
-			
 			// Add config to library
 			if ($cfg)
 			{
@@ -104,6 +101,13 @@ class Assets {
 			else
 			{
 				self::configure(config_item('assets'));
+			}
+			
+			// Load CoffeeScript
+			if (self::$enable_coffeescript)
+			{
+				if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/coffeescript/coffeescript.php'));
+				else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/coffeescript/coffeescript.php'));
 			}
 			
 			// Initialize LessPHP
@@ -164,8 +168,13 @@ class Assets {
 			// Single file
 			else
 			{
-				if ($group) self::$_js[$group][] = $file;
-				else        self::$_js[]         = $file;
+				$type = pathinfo($file, PATHINFO_EXTENSION);
+
+				if ($type != 'coffee' or ($type == 'coffee' and self::$enable_coffeescript))
+				{
+					if ($group) self::$_js[$group][] = $file;
+					else        self::$_js[]         = $file;
+				}
 			}
 		}
 	}
