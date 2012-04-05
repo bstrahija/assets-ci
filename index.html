@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=640" />
+
+    <link rel="stylesheet" href="stylesheets/core.css" media="screen"/>
+    <link rel="stylesheet" href="stylesheets/mobile.css" media="handheld, only screen and (max-device-width:640px)"/>
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css"/>
+
+    <script type="text/javascript" src="javascripts/modernizr.js"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script type="text/javascript" src="javascripts/headsmart.min.js"></script>
+    <script type="text/javascript">
+      $(document).ready(function () {
+        $('#main_content').headsmart()
+      })
+    </script>
+    <title>Assets by bstrahija</title>
+  </head>
+
+  <body>
+    <a id="forkme_banner" href="https://github.com/bstrahija/assets">Fork Me on GitHub</a>
+    <div class="shell">
+
+      <header>
+        <span class="ribbon-outer">
+          <span class="ribbon-inner">
+            <h1>Assets</h1>
+            <h2>Simple assets library. Ability to combine, minify and use the Less and CoffeeScript syntax.</h2>
+          </span>
+          <span class="left-tail"></span>
+          <span class="right-tail"></span>
+        </span>
+      </header>
+
+      <section id="downloads">
+        <span class="inner">
+          <a href="https://github.com/bstrahija/assets/zipball/master" class="zip"><em>download</em> .ZIP</a><a href="https://github.com/bstrahija/assets/tarball/master" class="tgz"><em>download</em> .TGZ</a>
+        </span>
+      </section>
+
+      <span class="banner-fix"></span>
+
+      <section id="main_content">
+        <h1>Simple Assets Library</h1>
+
+<p>A simple assets library that has the ability to combine and minify your JavaScript and CSS assets.
+Additionally there's a <a href="http://leafo.net/lessphp/">LessCSS</a> compiler and a <a href="https://github.com/alxlit/coffeescript-php">CoffeeScript</a> compiler.</p>
+
+<h2>Installation</h2>
+
+<p>The library can be installed as a <a href="http://getsparks.org/packages/assets/versions/HEAD/show">CodeIgniter spark</a> like this:</p>
+
+<pre><code>php tools/spark install -v1.0.0 assets
+</code></pre>
+
+<p>If you don't have Sparks just head on over to their <a href="http://getsparks.org/install">setup page</a> and follow the instructions.</p>
+
+<p>You can also install it as a normal library by placing 3rd party libraries into the CodeIgniter third_party directory.</p>
+
+<h2>Third Party Libraries</h2>
+
+<p>The libraries <a href="https://github.com/rgrove/jsmin-php/">JSMin</a>, <a href="http://code.google.com/p/cssmin/">CSSMin</a>, <a href="http://leafo.net/lessphp/">LessPHP</a> and <a href="https://github.com/alxlit/coffeescript-php">CoffeeScript-PHP</a> are all created by third parties, but they're included in this package for convenience.</p>
+
+<h2>Requirements</h2>
+
+<ol>
+<li>PHP 5.3+</li>
+<li>CodeIgniter 2.1</li>
+<li>Directory structure for the assets files, with a writeable cache directory</li>
+</ol><h2>Documentation</h2>
+
+<p>Set all your preferences in the config file (assets directories, options to minify and combine).
+Now you can use the helper methods in your views like this:</p>
+
+<pre><code>&lt;?php Assets::css(array('bootstrap.less', 'init.css', 'style.css')); ?&gt;
+&lt;?php Assets::js(array('libs/jquery.js', 'script.js', 'bean.coffee')); ?&gt;
+</code></pre>
+
+<p>There's also a method for clearing all cached files:</p>
+
+<pre><code>&lt;?php Assets::clear_cache(); ?&gt;
+</code></pre>
+
+<p>The default configuration assumes your assets directory is in the root of your project. Be sure to set the permissions for the cache directory so it can be writeable.</p>
+
+<h3>LESS / CoffeeScript</h3>
+
+<p>Files with extensions .less and .coffee will automatically be processed through appropriate libraries.</p>
+
+<h3>Groups</h3>
+
+<p>There's also a possibility to define groups of assets. This can be useful when for e.g. you want separate scripts in you page header, and others in the footer. This can be accomplished like this:</p>
+
+<pre><code>&lt;?php Assets::js_group('head',   array('libs/modernizr.js')); ?&gt;
+&lt;?php Assets::js_group('footer', array('plugins.js', 'script.js')); ?&gt;
+</code></pre>
+
+<p>The same thing will work with CSS files. You can use this to show groups of CSS files for specific pages:</p>
+
+<pre><code>&lt;?php Assets::css_group('global', array('style.css')); ?&gt;
+&lt;?php Assets::css_group('login',  array('login.css')); ?&gt;
+</code></pre>
+
+<h3>Importing CSS files (<a href="/import" class="user-mention">@import</a>)</h3>
+
+<p>Including files via <em><a href="/import" class="user-mention">@import</a></em> should work just fine, just be sure to use proper paths. Example of a stylesheet would be something like this:</p>
+
+<pre><code>@import "bootstrap/bootstrap.less";
+@import "libs/fancybox.css";
+
+body { background: #f2f2f2; }
+
+…
+</code></pre>
+
+<p>Just keep in mind when using <em><a href="/import" class="user-mention">@import</a></em> that those files are not scanned for changes and the cache wont be cleared in case you change a file that is included via <em><a href="/import" class="user-mention">@import</a></em>.</p>
+
+<h3>Images</h3>
+
+<p>A helper is also provided to display images from the directory setup in the config.</p>
+
+<pre><code>&lt;?php echo Assets::img('logo.png'); ?&gt;
+</code></pre>
+
+<p>You can also generate the img tag directly using a similar syntax as in the CodeIgniter HTML helper.</p>
+
+<pre><code>&lt;?php echo Assets::img('logo.png', true, array('title' =&gt; 'Logo')); ?&gt;
+</code></pre>
+
+<h2>Frameworks / Libraries</h2>
+
+<p>The library has been tested with Twitter Bootstrap 2.0.1 and HTML5 Boilerplate 3.0. It wont work with the latest Bootstrap 2.0.2 because of a problem in LessPHP. I hope this will be fixed soon. And if you happen to use the library with a different framework (bootstrap), give me a shout and I'll put it on this list. So here it is:</p>
+
+<ul>
+<li>Twitter Bootstrap 2.0.1 (2.0.2 not working yet) LESS</li>
+<li>HTML5 Boilerplate 3.0</li>
+</ul><h2>Directory structure example</h2>
+
+<pre><code>/application
+/assets
+    /cache
+    /css
+    /images
+    /js
+/sparks
+/system
+</code></pre>
+      </section>
+
+      <footer>
+        <span class="ribbon-outer">
+          <span class="ribbon-inner">
+            <p>this project by <a href="https://github.com/bstrahija">bstrahija</a> can be found on <a href="https://github.com/bstrahija/assets">GitHub</a></p>
+          </span>
+          <span class="left-tail"></span>
+          <span class="right-tail"></span>
+        </span>
+        <p>Generated with <a href="http://pages.github.com">GitHub Pages</a> using Merlot</p>
+        <span class="octocat"></span>
+      </footer>
+
+    </div>
+
+              <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-20635588-5");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+  </body>
+</html>
