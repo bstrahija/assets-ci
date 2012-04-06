@@ -745,6 +745,19 @@ class Assets {
 			else       return $html;
 		}
 	}
+
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	public static function conditional($condition = null, $string = null)
+	{
+		if ($condition and $string)
+		{
+			echo '<!--[if '.$condition.']>'."\n";
+			echo $string;
+			echo '<![endif]-->';
+		}
+	}
 	
 	
 	
