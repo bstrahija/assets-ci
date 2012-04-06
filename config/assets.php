@@ -13,7 +13,7 @@ $config['assets']['combine_css']          = true;
 $config['assets']['combine_js']           = true;
 $config['assets']['minify_css']           = true;
 $config['assets']['minify_js']            = true;
-$config['assets']['enable_coffeescript']  = false;
+$config['assets']['enable_coffeescript']  = true;
 
 /*
 |--------------------------------------------------------------------------

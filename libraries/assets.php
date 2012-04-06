@@ -5,10 +5,10 @@
  *
  * @author 		Boris Strahija <boris@creolab.hr>
  * @copyright 	Copyright (c) 2012, Boris Strahija, http://creolab.hr
- * @version 	1.0.0
+ * @version 	1.1.0
  */
 
-define('ASSETS_VERSION', '1.0.0');
+define('ASSETS_VERSION', '1.1.0');
 
 
 class Assets {
@@ -703,6 +703,47 @@ class Assets {
 	public static function js_group($group = null, $assets = null, $cfg = null)
 	{
 		self::all('js', null, $assets, $group, $cfg);
+	}
+
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	/**
+	 * Simply return html tags with CDN paths
+	 * @param  array $assets
+	 * @return string
+	 */
+	public static function cdn($assets = null, $echo = true)
+	{
+		if ($assets)
+		{
+			$html = '';
+
+			foreach ($assets as $asset)
+			{
+				// Get asset from config
+				if (is_array($asset))
+				{
+					$cdn_asset = self::$_ci->config->item($asset[0], 'assets_cdn');
+					if ($cdn_asset) $version = $asset[1];
+				}
+				else
+				{
+					$cdn_asset = self::$_ci->config->item($asset, 'assets_cdn');
+					if ($cdn_asset) $version = $cdn_asset['default_version'];
+				}
+
+				// Check if asset ok
+				if (isset($cdn_asset) and isset($version) and $cdn_asset and $version)
+				{
+					$cdn_path = str_replace('%version%', $version, $cdn_asset['path']);
+					$html .= self::_tag($cdn_path, 'js');
+				}
+			}
+
+			if ($echo) echo $html;
+			else       return $html;
+		}
 	}
 	
 	

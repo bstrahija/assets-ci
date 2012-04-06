@@ -2,11 +2,11 @@
 
 /**
  * Assets Helper
- * The function are pretty self-explanatory
+ * The function names are pretty self-explanatory
  *
  * @author 		Boris Strahija <boris@creolab.hr>
  * @copyright 	Copyright (c) 2012, Boris Strahija, http://creolab.hr
- * @version 	1.0.0
+ * @version 	1.1.0
  */
 
 
