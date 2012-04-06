@@ -749,6 +749,11 @@ class Assets {
 	
 	/* ------------------------------------------------------------------------------------------ */
 	
+	/**
+	 * Place string in IE conditional comments
+	 * @param  string $condition
+	 * @param  string $string
+	 */
 	public static function conditional($condition = null, $string = null)
 	{
 		if ($condition and $string)
