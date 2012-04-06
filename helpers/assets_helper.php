@@ -34,6 +34,18 @@ function assets_img($path = null, $tag = false, $properties = null)
 }
 
 
+function assets_cdn($assets = null)
+{
+	Assets::cdn($assets);
+}
+
+
+function assets_conditional($condition = null, $string = null)
+{
+	Assets::conditional($condition, $string);
+}
+
+
 function clear_assets_cache($type = null)
 {
 	Assets::clear_cache($type);
