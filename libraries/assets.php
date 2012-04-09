@@ -430,13 +430,13 @@ class Assets {
 					// Auto clear cache directory?
 					if ($type == 'css' and (self::$auto_clear_cache or self::$auto_clear_css_cache) and ! self::$auto_cleared_css_cache)
 					{
-						self::clear_css_cache();
+						self::clear_css_cache(null, self::$group);
 						self::$auto_cleared_css_cache = true;
 					}
 					
 					if ($type == 'js' and (self::$auto_clear_cache or self::$auto_clear_js_cache) and ! self::$auto_cleared_js_cache)
 					{
-						self::clear_js_cache();
+						self::clear_js_cache(null, self::$group);
 						self::$auto_cleared_js_cache = true;
 					}
 					
@@ -499,12 +499,12 @@ class Assets {
 						// Auto clear cache directory?
 						if ($type == 'css' and (self::$auto_clear_cache or self::$auto_clear_css_cache))
 						{
-							self::clear_css_cache($asset);
+							self::clear_css_cache($asset, self::$group);
 						}
 						
 						if ($type == 'js' and (self::$auto_clear_cache or self::$auto_clear_js_cache))
 						{
-							self::clear_js_cache($asset);
+							self::clear_js_cache($asset, self::$group);
 						}
 						
 						// And save the file
@@ -775,7 +775,7 @@ class Assets {
 	 * @param  string $type
 	 * @param  string $asset_file
 	 */
-	public static function clear_cache($type = null, $asset_file = null)
+	public static function clear_cache($type = null, $asset_file = null, $group = null)
 	{
 		self::init();
 
@@ -797,6 +797,17 @@ class Assets {
 						
 						// Compare file name and remove if necesary
 						if ($dev_file_name == $asset_file)
+						{
+							unlink($file_path);
+							//echo 'Deleted asset: '.$file."<br>\n";
+						}
+					}
+
+					// Clear a group of files
+					elseif ($group)
+					{
+						// Only the group prefix
+						if (stripos($file_info['filename'], $group.".") === 0)
 						{
 							unlink($file_path);
 							//echo 'Deleted asset: '.$file."<br>\n";
@@ -835,9 +846,9 @@ class Assets {
 	 * Delete cached CSS files
 	 * @param  string $asset_file
 	 */
-	public static function clear_css_cache($asset_file = null)
+	public static function clear_css_cache($asset_file = null, $group = null)
 	{
-		return self::clear_cache('css', $asset_file);
+		return self::clear_cache('css', $asset_file, $group);
 	}
 	
 	
@@ -847,9 +858,9 @@ class Assets {
 	 * Delete cached JS files
 	 * @param  string $asset_file
 	 */
-	public static function clear_js_cache($asset_file = null)
+	public static function clear_js_cache($asset_file = null, $group = null)
 	{
-		return self::clear_cache('js', $asset_file);
+		return self::clear_cache('js', $asset_file, $group);
 	}
 	
 	
