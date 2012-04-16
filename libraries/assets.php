@@ -106,8 +106,10 @@ class Assets {
 			// Load CoffeeScript
 			if (self::$enable_coffeescript)
 			{
-				if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/coffeescript/coffeescript.php'));
+				if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/coffeescript/Init.php'));
 				else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/coffeescript/coffeescript.php'));
+
+				CoffeeScript\Init::load();
 			}
 			
 			// Initialize LessPHP
@@ -400,7 +402,7 @@ class Assets {
 								// Try to compile CoffeeScript
 								try {
 									$contents = read_file(reduce_double_slashes($path.'/'.$asset));
-									$contents = CoffeeScript\compile($contents);
+									$contents = CoffeeScript\Compiler::compile($contents);
 								}
 								catch (Exception $e)
 								{
@@ -621,7 +623,7 @@ class Assets {
 	 * @param  array  $cfg
 	 * @return string
 	 */
-	public static function all($type = 'all', $css = null, $js = null, $group = null, $cfg = null)
+	public static function all($type = 'all', $css = null, $js = null, $group = null, $cfg = null, $echo = true)
 	{
 		self::$group = $group;
 		self::init();
@@ -642,9 +644,10 @@ class Assets {
 			self::$_js = array();
 			self::_add_js($js, $group);
 		}
-		
+
 		// Display all the tags
-		echo self::get($type);
+		if ($echo) echo   self::get($type);
+		else       return self::get($type);
 	}
 	
 	
@@ -656,9 +659,9 @@ class Assets {
 	 * @param  array  $cfg
 	 * @return string
 	 */
-	public static function css($assets = null, $cfg = null)
+	public static function css($assets = null, $cfg = null, $echo = true)
 	{
-		self::all('css', $assets, null, null, $cfg);
+		self::all('css', $assets, null, null, $cfg, $echo);
 	}
 
 	
@@ -671,9 +674,9 @@ class Assets {
 	 * @param  array  $cfg
 	 * @return string
 	 */
-	public static function css_group($group = null, $assets = null, $cfg = null)
+	public static function css_group($group = null, $assets = null, $cfg = null, $echo = true)
 	{
-		self::all('css', $assets, null, $group, $cfg);
+		return self::all('css', $assets, null, $group, $cfg, $echo);
 	}
 	
 	
@@ -685,9 +688,9 @@ class Assets {
 	 * @param  array  $cfg
 	 * @return string
 	 */
-	public static function js($assets = null, $cfg = null)
+	public static function js($assets = null, $cfg = null, $echo = true)
 	{
-		self::all('js', null, $assets, null, $cfg);
+		self::all('js', null, $assets, null, $cfg, $echo);
 	}
 
 	
@@ -700,9 +703,9 @@ class Assets {
 	 * @param  array  $cfg
 	 * @return string
 	 */
-	public static function js_group($group = null, $assets = null, $cfg = null)
+	public static function js_group($group = null, $assets = null, $cfg = null, $echo = true)
 	{
-		self::all('js', null, $assets, $group, $cfg);
+		return self::all('js', null, $assets, $group, $cfg, $echo);
 	}
 
 	
@@ -759,7 +762,19 @@ class Assets {
 		if ($condition and $string)
 		{
 			echo '<!--[if '.$condition.']>'."\n";
-			echo $string;
+
+			if (is_array($string))
+			{
+				foreach ($string as $str)
+				{
+					echo $str;
+				}
+			}
+			else
+			{
+				echo $string;	
+			}
+			
 			echo '<![endif]-->';
 		}
 	}
