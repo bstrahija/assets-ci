@@ -6,7 +6,7 @@
  *
  * @author 		Boris Strahija <boris@creolab.hr>
  * @copyright 	Copyright (c) 2012, Boris Strahija, http://creolab.hr
- * @version 	1.1.0
+ * @version 	1.5.0
  */
 
 

@@ -2,18 +2,18 @@
 
 /*
 |--------------------------------------------------------------------------
-| Combine / Minify / Less
+| Processing assets
 |--------------------------------------------------------------------------
 |
-| Flags whether files should be combined and minified
+| Flags for processing actions
 |
 */
 
-$config['assets']['combine_css']          = true;
-$config['assets']['combine_js']           = true;
 $config['assets']['minify_css']           = true;
 $config['assets']['minify_js']            = true;
+$config['assets']['enable_less']          = true;
 $config['assets']['enable_coffeescript']  = true;
+$config['assets']['freeze']               = false;
 
 /*
 |--------------------------------------------------------------------------
@@ -44,19 +44,3 @@ $config['assets']['css_dir']    = 'css';
 $config['assets']['cache_dir']  = 'cache';
 $config['assets']['img_dir']    = 'img';
 $config['assets']['html5']      = true;
-
-/*
-|--------------------------------------------------------------------------
-| Cache prefix
-|--------------------------------------------------------------------------
-|
-| This prefix is added to cache files instead of the default timestamp
-| By default only the timestamp will be added, but if you setup a custom 
-| prefix, you can choose to remove the timestamp
-|
-*/
-
-$config['assets']['prefix_css']       = null;
-$config['assets']['prefix_js']        = null;
-$config['assets']['prefix_timestamp'] = true;
-

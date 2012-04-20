@@ -5,56 +5,42 @@
  *
  * @author 		Boris Strahija <boris@creolab.hr>
  * @copyright 	Copyright (c) 2012, Boris Strahija, http://creolab.hr
- * @version 	1.1.0
+ * @version 	1.5.0
  */
 
-define('ASSETS_VERSION', '1.1.0');
+define('ASSETS_VERSION', '1.5.0');
 
 
 class Assets {
 	
 	protected static $_ci;
 	protected static $_less;
-	
-	
-	// Paths and folders
-	public static $assets_dir;
-	public static $base_path;
-	public static $base_url;
-	
-	public static $js_dir;
-	public static $js_path;
-	public static $js_url;
-	
-	public static $css_dir;
-	public static $css_path;
-	public static $css_url;
-	
-	public static $img_dir;
-	public static $img_path;
-	public static $img_url;
-	
-	public static $cache_dir;
-	public static $cache_path;
-	public static $cache_url;
+	protected static $_cache_info;
+	protected static $_cache_info_file = 'info.cache';
+	protected static $_enable_benchmark = false;
 
 
+	// All the assets go in here
+	private static $_assets = array('js' => array(), 'css' => array());
+
+	
 	// Prefixes and groups
-	public static $prefix_css;
-	public static $prefix_js;
-	public static $prefix_timestamp;
 	public static $group;
-	
-	
-	// Files that should be processed
-	private static $_js;
-	private static $_css;
-	private static $assets;
-	
-	
+	public static $default_group = array(
+		'css' => '__def_css__',
+		'js'  => '__def_js__',
+	);
+
+
+	// Paths and folders
+	public static $assets_dir, $base_path,  $base_url;
+	public static $js_dir,     $js_path,    $js_url;
+	public static $css_dir,    $css_path,   $css_url;
+	public static $img_dir,    $img_path,   $img_url;
+	public static $cache_dir,  $cache_path, $cache_url;
+
+
 	// Config
-	public static $combine_css          = true;  // Combine CSS files
-	public static $combine_js           = true;  // Combine JS files
 	public static $minify               = false; // Minify all
 	public static $minify_js            = true;
 	public static $minify_css           = true;
@@ -62,606 +48,47 @@ class Assets {
 	public static $auto_clear_css_cache = false; // Or clear just cached CSS files
 	public static $auto_clear_js_cache  = false; // Or just cached JS files
 	public static $html5                = true;  // Use HTML5 tags
+	public static $enable_less          = true;  // Enable LESS CSS parser
 	public static $enable_coffeescript  = true;  // Enable CoffeeScript parser
-
+	public static $freeze               = false; // Disable all processing once the assets are cached (for production)
+	
 	// Flags
-	public static $auto_cleared_css_cache = false;
-	public static $auto_cleared_js_cache  = false;
-	
-	
-	/* ------------------------------------------------------------------------------------------ */
-	
-	/**
-	 * Library initialization
-	 * @param  array $cfg
-	 */
-	public static function init($cfg = null)
-	{
-		if ( ! self::$_ci)
-		{
-			self::$_ci =& get_instance();
+	public static  $auto_cleared_css_cache = false;
+	public static  $auto_cleared_js_cache  = false;
+	private static $_cssmin_loaded         = false;
+	private static $_jsmin_loaded          = false;
+	private static $_less_loaded           = false;
+	private static $_coffeescript_loaded   = false;
 
-			// Load LessPHP
-			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/lessc.php'));
-			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/lessc.php'));
-			
-			// Load JSMin
-			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/jsmin.php'));
-			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/jsmin.php'));
-			
-			// Load CSSMin
-			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/cssmin.php'));
-			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/cssmin.php'));
-			
-			// Add config to library
-			if ($cfg)
-			{
-				self::configure(array_merge($cfg), config_item('assets'));
-			}
-			else
-			{
-				self::configure(config_item('assets'));
-			}
-			
-			// Load CoffeeScript
-			if (self::$enable_coffeescript)
-			{
-				if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/coffeescript/Init.php'));
-				else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/coffeescript/coffeescript.php'));
-
-				CoffeeScript\Init::load();
-			}
-			
-			// Initialize LessPHP
-			self::$_less = new lessc();
-			self::$_less->importDir = self::$css_path.'/';
-		}
-	}
-	
-	
-	/* ------------------------------------------------------------------------------------------ */
-	
-	/**
-	 * Add new CSS file for processing
-	 * @param  string $file
-	 */
-	private static function _add_css($file = null, $group = null)
-	{
-		if ($file)
-		{
-			// Multiple files as array are supported
-			if (is_array($file))
-			{
-				foreach ($file as $f)
-				{
-					self::_add_css($f, $group);
-				}
-			}
-			
-			// Single file
-			else
-			{
-				if ($group) self::$_css[$group][] = $file;
-				else        self::$_css[]         = $file;
-			}
-		}
-	}
-	
-	
-	/* ------------------------------------------------------------------------------------------ */
-	
-	/**
-	 * Add new JS file for processing
-	 * @param  string $file
-	 */
-	private static function _add_js($file = null, $group = null)
-	{
-		if ($file)
-		{
-			// Multiple files as array are supported
-			if (is_array($file))
-			{
-				foreach ($file as $f)
-				{
-					self::_add_js($f, $group);
-				}
-			}
-			
-			// Single file
-			else
-			{
-				$type = pathinfo($file, PATHINFO_EXTENSION);
-
-				if ($type != 'coffee' or ($type == 'coffee' and self::$enable_coffeescript))
-				{
-					if ($group) self::$_js[$group][] = $file;
-					else        self::$_js[]         = $file;
-				}
-			}
-		}
-	}
-	
-	
-	
-	/* ------------------------------------------------------------------------------------------ */
-	/* !/===> Processing files, generating HTML tags */
-	/* ------------------------------------------------------------------------------------------ */
-	
-	
-	/**
-	 * Get tags
-	 * @param  string $type
-	 * @return string
-	 */
-	public static function get($type = 'all')
-	{
-		$html = '';
-		
-		if ($type == 'all')
-		{
-			$html .= self::_get_css();
-			$html .= self::_get_js();
-		}
-		elseif ($type == 'css')
-		{
-			$html .= self::_get_css();
-		}
-		elseif ($type == 'js')
-		{
-			$html .= self::_get_js();
-		}
-		
-		return $html;
-	}
-	
-	
-	/* ------------------------------------------------------------------------------------------ */
-	
-	/**
-	 * Get CSS tags
-	 * @return string
-	 */
-	private static function _get_css()
-	{
-		$html = '';
-		
-		if (self::$_css)
-		{
-			// Simply return a list of all css tags
-			if ( ! self::$combine_css and ( ! self::$minify and ! self::$minify_css))
-			{
-				foreach (self::$_css as $css)
-				{
-					if (self::$group)
-					{
-						foreach ($css as $group_css)
-						{
-							// Process LESS
-							if (pathinfo($group_css, PATHINFO_EXTENSION) === 'less')
-							{
-								$files = self::_cache_assets(array(self::$group => array($group_css)), 'css');
-								$html .= self::_tag($files[0]);
-							}
-							else
-							{
-								$html .= self::_tag(self::$css_url.'/'.$group_css);
-							}
-						}
-					}
-					else
-					{
-						// Process LESS
-						if (pathinfo($css, PATHINFO_EXTENSION) === 'less')
-						{
-							$files = self::_cache_assets(array($css), 'css');
-							$html .= self::_tag($files[0]);
-						}
-						else
-						{
-							$html .= self::_tag(self::$css_url.'/'.$css);
-						}
-					}
-				}
-			
-			}
-			else
-			{
-				// Try to cache assets and get html tag
-				$files = self::_cache_assets(self::$_css, 'css');
-
-				// Add to html
-				foreach ($files as $file)
-				{
-					$html .= self::_tag($file);
-				}
-			}
-		}
-		
-		return $html;
-	}
-	
-	
-	/* ------------------------------------------------------------------------------------------ */
-	
-	/**
-	 * Get JS tags
-	 * @return string
-	 */
-	private static function _get_js()
-	{
-		$html = '';
-		
-		if (self::$_js)
-		{
-			// Simply return a list of all css tags
-			if ( ! self::$combine_js and ( ! self::$minify and ! self::$minify_js))
-			{
-				foreach (self::$_js as $js)
-				{
-					if (self::$group)
-					{
-						foreach ($js as $group_js)
-						{
-							// Process CoffeeScript
-							if (pathinfo($group_js, PATHINFO_EXTENSION) === 'coffee')
-							{
-								$files = self::_cache_assets(array(self::$group => array($group_js)), 'js');
-								$html .= self::_tag($files[0]);
-							}
-							else
-							{
-								$html .= self::_tag(self::$js_url.'/'.$group_js);
-							}
-						}
-					}
-					else
-					{
-						// Process CoffeeScript
-						if (pathinfo($js, PATHINFO_EXTENSION) === 'coffee')
-						{
-							$files = self::_cache_assets(array($js), 'js');
-							$html .= self::_tag($files[0]);
-						}
-						else
-						{
-							$html .= self::_tag(self::$js_url.'/'.$js);
-						}
-					}
-				}
-			}
-			else
-			{
-				// Try to cache assets and get html tag
-				$files = self::_cache_assets(self::$_js, 'js');
-				
-				// Add to html
-				foreach ($files as $file)
-				{
-					$html .= self::_tag($file);
-				}
-			}
-		}
-		
-		return $html;
-	}
-	
-	
-	/* ------------------------------------------------------------------------------------------ */
-	
-	/**
-	 * Caches the assets if needed and returns a list files/paths
-	 * @param  array  $assets
-	 * @param  string $type   [description]
-	 * @return array
-	 */
-	private static function _cache_assets($assets = null, $type = null)
-	{
-		$files = array(); // Will contain all the processed files
-
-		if ($assets and $type)
-		{
-			$last_modified = 0;
-			$path          = ($type == 'css') ? self::$css_path : self::$js_path ;
-			
-			if (($type === 'css' and self::$combine_css) or ($type === 'js' and self::$combine_js))
-			{
-				// Check if it's a group (associative array)
-				if (self::$group) $assets = $assets[self::$group];
-
-				// Find last modified file
-				foreach ($assets as $asset)
-				{
-					$last_modified 	= max($last_modified, filemtime(realpath($path.'/'.$asset)));
-				}
-				
-				// Build the filename and path
-				if     (self::$prefix_css and $type == 'css')       $file_name = self::$prefix_css.'.'.((self::$prefix_timestamp) ? date('YmdHis', $last_modified).'.' : '').$type;
-				elseif (self::$prefix_js  and $type == 'js')        $file_name = self::$prefix_js .'.'.((self::$prefix_timestamp) ? date('YmdHis', $last_modified).'.' : '').$type;
-				elseif (self::$group and ! self::$prefix_timestamp) $file_name = $type;
-				else                                                $file_name = date('YmdHis', $last_modified).'.'.$type;
-				$file_path = reduce_double_slashes(self::$cache_path.'/'.((self::$group) ? self::$group.'.' : '').$file_name);
-				
-				// Now check if the file exists in the cache directory
-				if ( ! file_exists($file_path))
-				{
-					$data = '';
-					
-					// Get file contents
-					foreach ($assets as $asset)
-					{
-						// Get file contents, for CSS file we use the LESS compiler
-						if ($type == 'css')
-						{
-							$less     = new lessc(self::$css_path.'/'.$asset);
-							$contents = $less->parse();
-						}
-						else
-						{
-							if (pathinfo($asset, PATHINFO_EXTENSION) === 'coffee')
-							{
-								// Try to compile CoffeeScript
-								try {
-									$contents = read_file(reduce_double_slashes($path.'/'.$asset));
-									$contents = CoffeeScript\Compiler::compile($contents);
-								}
-								catch (Exception $e)
-								{
-									$contents = '';
-								}
-							}
-							else
-							{
-								$contents = read_file(reduce_double_slashes($path.'/'.$asset));
-							}
-						}
-
-						$pathinfo = pathinfo($asset);
-						if ($pathinfo['dirname'] != '.') 	$base_url = self::$css_url.'/'.$pathinfo['dirname'];
-						else 								$base_url = self::$css_url;
-						
-						// Process asset
-						$data .= self::_process($contents, $type, 'minify', $base_url);
-					}
-					
-					// Minify
-					if ($type == 'css')
-					{
-						$data = self::_process($data, $type, 'minify');
-					}
-					
-					// Auto clear cache directory?
-					if ($type == 'css' and (self::$auto_clear_cache or self::$auto_clear_css_cache) and ! self::$auto_cleared_css_cache)
-					{
-						self::clear_css_cache(null, self::$group);
-						self::$auto_cleared_css_cache = true;
-					}
-					
-					if ($type == 'js' and (self::$auto_clear_cache or self::$auto_clear_js_cache) and ! self::$auto_cleared_js_cache)
-					{
-						self::clear_js_cache(null, self::$group);
-						self::$auto_cleared_js_cache = true;
-					}
-					
-					// And save the file
-					write_file($file_path, $data);
-				}
-				
-				// Add to files
-				$files[] = reduce_double_slashes(self::$cache_url.'/'.((self::$group) ? self::$group.'.' : '').$file_name);
-			}
-			
-			// No combining
-			else
-			{
-				// Check if it's a group (associative array)
-				if (self::$group) $assets = $assets[self::$group];
-				
-				foreach ($assets as $asset)
-				{
-					$last_modified 	= filemtime(realpath($path.'/'.$asset));
-					
-					// Now check if the file exists in the cache directory
-					$file 		= pathinfo($asset);
-					if     (self::$prefix_css and $type == 'css') $file_name 	= self::$prefix_css.'.'.((self::$prefix_timestamp) ? date('YmdHis', $last_modified).'.' : '').$file['filename'].'.'.$type;
-					elseif (self::$prefix_js  and $type == 'js')  $file_name 	= self::$prefix_js .'.'.((self::$prefix_timestamp) ? date('YmdHis', $last_modified).'.' : '').$file['filename'].'.'.$type;
-					else                                          $file_name 	= date('YmdHis', $last_modified).'.'.$file['filename'].'.'.$type;
-					$file_path 	= reduce_double_slashes(self::$cache_path.'/'.((self::$group) ? self::$group.'.' : '').$file_name);
-					
-					if ( ! file_exists($file_path))
-					{
-						// Get file contents
-						if ($type == 'css')
-						{
-							$less = new lessc(self::$css_path.'/'.$asset);
-							$data = $less->parse();
-						}
-						else
-						{
-							if (pathinfo($asset, PATHINFO_EXTENSION) === 'coffee')
-							{
-								// Try to compile CoffeeScript
-								try {
-									$data = read_file(reduce_double_slashes($path.'/'.$asset));
-									$data = CoffeeScript\compile($data);
-								}
-								catch (Exception $e)
-								{
-									$data = '';
-								}
-							}
-							else
-							{
-								$data = read_file(reduce_double_slashes($path.'/'.$asset));
-							}
-						}
-
-						// Process
-						$data = self::_process($data, $type, 'all', site_url(self::$css_url));
-						
-						// Auto clear cache directory?
-						if ($type == 'css' and (self::$auto_clear_cache or self::$auto_clear_css_cache))
-						{
-							self::clear_css_cache($asset, self::$group);
-						}
-						
-						if ($type == 'js' and (self::$auto_clear_cache or self::$auto_clear_js_cache))
-						{
-							self::clear_js_cache($asset, self::$group);
-						}
-						
-						// And save the file
-						write_file($file_path, $data);
-					}
-					
-					// Add to files
-					$files[] = reduce_double_slashes(self::$cache_url.'/'.((self::$group) ? self::$group.'.' : '').$file_name);
-				}
-			}
-		}
-		
-		return $files;
-	}
-	
-	
-	/* ------------------------------------------------------------------------------------------ */
-	
-	/**
-	 * Process files
-	 * @param  string $data     contents of file
-	 * @param  string $type     css or js
-	 * @param  string $do       what to do (all, minify)
-	 * @param  string $base_url URL to assets directory
-	 * @return string           returns the processed file data
-	 */
-	private static function _process($data = null, $type = null, $do = 'all', $base_url = null)
-	{
-		if ( ! $base_url) $base_url = self::$base_url;
-		
-		if ($type == 'css')
-		{
-			if ((self::$minify or self::$minify_css) and ($do == 'all' or $do == 'minify'))
-			{
-				$data = CSSMin::minify($data, array(
-					'currentDir'          => str_replace(site_url(), '', $base_url).'/',
-				));
-			}
-		}
-		else
-		{
-			if ((self::$minify or self::$minify_js) and ($do == 'all' or $do == 'minify'))
-			{
-				$data = JSMin::minify($data);
-			}
-		}
-		
-		return $data;
-	}
-	
-	
-	/* ------------------------------------------------------------------------------------------ */
-	
-	/**
-	 * Generates assets tags
-	 * @param  string $file
-	 * @param  string $type
-	 * @return string
-	 */
-	private static function _tag($file = null, $type = null)
-	{
-		// Try to figure out a type if none passed
-		if ( ! $type)
-		{
-			$type = substr(strrchr($file,'.'), 1);
-		}
-		
-		// Now return CSS html tag
-		if ($file and ($type == 'css' or $type == 'less'))
-		{
-			// Replace less sufix
-			$file = str_replace('.less', '.css', $file);
-
-			if (self::$html5) {
-				return '<link rel="stylesheet" href="'.$file.'">'.PHP_EOL;
-			}
-			else
-			{
-				return '<link rel="stylesheet" type="text/css" href="'.$file.'" />'.PHP_EOL;
-			}
-		}
-		
-		// And the JS html tag
-		elseif ($file and ($type == 'js' or $type == 'coffee'))
-		{
-			// Replace coffee sufix
-			$file = str_replace('.coffee', '.js', $file);
-
-			if (self::$html5)
-			{
-				return '<script src="'.$file.'"></script>'.PHP_EOL;
-			}
-			else
-			{
-				return '<script src="'.$file.'" type="text/javascript" charset="utf-8"></script>'.PHP_EOL;
-			}
-		}
-		
-		return null;
-	}
-	
-	
-	
-	/* ------------------------------------------------------------------------------------------ */
-	/* !/===> Displaying assets */
-	/* ------------------------------------------------------------------------------------------ */
-	
-	
-	/**
-	 * Simply displays the generated tags
-	 * @param  string $type which assets should be displayed
-	 * @param  mixed  $css  CSS files
-	 * @param  mixed  $js   JS files
-	 * @param  array  $cfg
-	 * @return string
-	 */
-	public static function all($type = 'all', $css = null, $js = null, $group = null, $cfg = null, $echo = true)
-	{
-		self::$group = $group;
-		self::init();
-
-		// Configuration
-		if ($cfg) self::configure($cfg);
-
-		// Overwrite CSS files
-		if ($css)
-		{
-			self::$_css = array();
-			self::_add_css($css, $group);
-		}
-		
-		// Overwrite JS files
-		if ($js)
-		{
-			self::$_js = array();
-			self::_add_js($js, $group);
-		}
-
-		// Display all the tags
-		if ($echo) echo   self::get($type);
-		else       return self::get($type);
-	}
-	
 	
 	/* ------------------------------------------------------------------------------------------ */
 	
 	/**
 	 * Display CSS tags
-	 * @param  array  $assets
-	 * @param  array  $cfg
+	 * @param  array  $files
 	 * @return string
 	 */
-	public static function css($assets = null, $cfg = null, $echo = true)
+	public static function css($files = null)
 	{
-		self::all('css', $assets, null, null, $cfg, $echo);
+
+		self::init();
+
+		// Start benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::css()_start");
+
+		self::$group = null;
+		// Add to process container
+		self::_add_assets($files, null, 'css');
+
+		// And process it
+		if (self::$_cache_info and self::$freeze) {}
+		else                                      { self::_process('css'); }
+
+		// End benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::css()_end");
+
+		// Tags
+		return self::_generate_tags('css');
 	}
 
 	
@@ -670,27 +97,61 @@ class Assets {
 	/**
 	 * Display a group of CSS tags
 	 * @param  string $group
-	 * @param  array  $assets
-	 * @param  array  $cfg
+	 * @param  array  $files
 	 * @return string
 	 */
-	public static function css_group($group = null, $assets = null, $cfg = null, $echo = true)
+	public static function css_group($group = null, $files = null)
 	{
-		return self::all('css', $assets, null, $group, $cfg, $echo);
+		self::$group = $group;
+
+		self::init();
+
+		// Start benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::css_group(".$group.")_start");
+
+		// Add to process container
+		self::_add_assets($files, $group, 'css');
+
+		// And process it
+		if (self::$_cache_info and self::$freeze) {}
+		else                                      { self::_process('css', $group); }
+
+		// End benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::css_group(".$group.")_end");
+
+		// Tags
+		return self::_generate_tags('css');
 	}
-	
+
 	
 	/* ------------------------------------------------------------------------------------------ */
 	
 	/**
 	 * Display JS tags
-	 * @param  array  $assets
-	 * @param  array  $cfg
+	 * @param  array  $files
 	 * @return string
 	 */
-	public static function js($assets = null, $cfg = null, $echo = true)
+	public static function js($files = null)
 	{
-		self::all('js', null, $assets, null, $cfg, $echo);
+		self::$group = null;
+
+		self::init();
+
+		// Start benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::js()_start");
+
+		// Add to process container
+		self::_add_assets($files, null, 'js');
+
+		// And process it
+		if (self::$_cache_info and self::$freeze) {}
+		else                                      { self::_process('js'); }
+
+		// End benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::js()_end");
+
+		// Tags
+		return self::_generate_tags('js');
 	}
 
 	
@@ -699,13 +160,30 @@ class Assets {
 	/**
 	 * Display a group of JS tags
 	 * @param  string $group
-	 * @param  array  $assets
-	 * @param  array  $cfg
+	 * @param  array  $files
 	 * @return string
 	 */
-	public static function js_group($group = null, $assets = null, $cfg = null, $echo = true)
+	public static function js_group($group = null, $files = null)
 	{
-		return self::all('js', null, $assets, $group, $cfg, $echo);
+		self::$group = $group;
+
+		self::init();
+
+		// Start benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::js_group(".$group.")_start");
+
+		// Add to process container
+		self::_add_assets($files, $group, 'js');
+
+		// And process it
+		if (self::$_cache_info and self::$freeze) {}
+		else                                      { self::_process('js', $group); }
+
+		// End benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::js_group(".$group.")_end");
+
+		// Tags
+		return self::_generate_tags('js');
 	}
 
 	
@@ -720,6 +198,9 @@ class Assets {
 	{
 		if ($assets)
 		{
+			// Start benchmark
+			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::cdn()_start");
+
 			$html = '';
 
 			foreach ($assets as $asset)
@@ -740,9 +221,12 @@ class Assets {
 				if (isset($cdn_asset) and isset($version) and $cdn_asset and $version)
 				{
 					$cdn_path = str_replace('%version%', $version, $cdn_asset['path']);
-					$html .= self::_tag($cdn_path, 'js');
+					$html .= self::tag($cdn_path, 'js', false);
 				}
 			}
+
+			// End benchmark
+			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::cdn()_end");
 
 			if ($echo) echo $html;
 			else       return $html;
@@ -761,6 +245,9 @@ class Assets {
 	{
 		if ($condition and $string)
 		{
+			// Start benchmark
+			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::conditional()_start");
+
 			echo '<!--[if '.$condition.']>'."\n";
 
 			if (is_array($string))
@@ -776,94 +263,618 @@ class Assets {
 			}
 			
 			echo '<![endif]-->';
+			
+			// End benchmark
+			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::conditional()_end");
 		}
 	}
-	
-	
+
+
+
 	
 	/* ------------------------------------------------------------------------------------------ */
-	/* !/===> Deleting files */
+	
+	/**
+	 * Add assets to list for processing
+	 * @param array  $assets
+	 * @param string $group
+	 * @param string $type
+	 */
+	private static function _add_assets($assets = null, $group = null, $type = null)
+	{
+		// Start benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::add-assets()_start");
+
+		if ( ! $group) $group = self::$default_group[$type];
+
+		// Set last modified time to 0
+		self::$_assets[$type][$group]['last_modified']       = 0;
+		self::$_assets[$type][$group]['last_modified_human'] = "0000-00-00 00:00:00";
+
+		// Prepare some vars
+		self::$_assets[$type][$group]['combined']  = '';
+		self::$_assets[$type][$group]['output']    = '';
+
+		// List of active files in group
+		if (isset(self::$_cache_info->{$type}->{$group}->file_list)) self::$_assets[$type][$group]['file_list'] = self::$_cache_info->{$type}->{$group}->file_list;
+		else                                                         self::$_assets[$type][$group]['file_list'] = array();
+		
+		// Add assets to list
+		foreach ($assets as $asset)
+		{
+			// Add file
+			$tmp_asset = array('file' => $asset);
+
+			// Determine path
+			if     ($type === 'css') $file_path = reduce_double_slashes(self::$css_path.'/'.$asset);
+			elseif ($type === 'js')  $file_path = reduce_double_slashes(self::$js_path.'/'.$asset);
+			$tmp_asset['path'] = $file_path;
+
+			// Modified time
+			$tmp_asset['modified'] = filemtime(realpath($file_path));
+			if ($tmp_asset['modified'] > self::$_assets[$type][$group]['last_modified'])
+			{
+				self::$_assets[$type][$group]['last_modified']       = $tmp_asset['modified'];
+				self::$_assets[$type][$group]['last_modified_human'] = date('Y-m-d H:i:s', (int) $tmp_asset['modified']);
+			}
+
+			// Add to container
+			self::$_assets[$type][$group]['src'][]       = $tmp_asset;
+			self::$_assets[$type][$group]['file_list'][] = $tmp_asset['file'];
+		}
+
+		self::$_assets[$type][$group]['file_list'] = array_unique(self::$_assets[$type][$group]['file_list']);
+		
+		// End benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::add-assets()_end");
+	}
+
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	/**
+	 * Process assets in group
+	 * @param  string $type
+	 * @param  string $group
+	 */
+	private static function _process($type = null, $group = null)
+	{
+		if ( ! $group) $group = self::$default_group[$type];
+
+		// Start benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::process(".$type.", ".$group.")_start");
+
+		// Last modified date
+		if ( ! isset(self::$_cache_info->{$type}->{$group})) $last_modified = 0;
+		else                                                 $last_modified = self::last_modified($type, $group);
+
+		// Create a cache filename
+		if ($group !== self::$default_group[$type]) $file_prefix = $group.'.';
+		else                                        $file_prefix = '';
+		$file_name = self::$_assets[$type][$group]['cache_file_name'] = $file_prefix.$last_modified.".".$type;
+
+		// And check if we should process it
+		$file_exists = file_exists(self::$cache_path.'/'.$file_name);
+
+		if ( ! $file_exists or ! $last_modified)
+		{
+			// Get list of assets
+			$assets = self::$_assets[$type][$group];
+
+			// Loop through all original assets
+			foreach ($assets['src'] as $key=>$asset)
+			{
+				// Get file contents
+				$contents = read_file($asset['path']);
+
+				// Get file info
+				$asset['info'] = pathinfo($asset['file']);
+
+				// Process imports in CSS files
+				if ($type === 'css')
+				{
+					$import_result = self::_process_imports($contents, null, $asset['file']);
+					$contents      = $import_result['contents'];
+
+					// Update last modified time
+					if ($import_result['last_modified']  > self::$_assets[$type][$group]['last_modified'])
+					{
+						self::$_assets[$type][$group]['last_modified']       = $import_result['last_modified'];
+						self::$_assets[$type][$group]['last_modified_human'] = date('Y-m-d H:i:s', $import_result['last_modified']);
+					}
+
+					// Update imported files
+					self::$_assets[$type][$group]['file_list'] = array_unique(array_merge(self::$_assets[$type][$group]['file_list'], $import_result['file_list']));
+				}
+				elseif ($type === 'js')
+				{
+					// CoffeeScript parser
+					if (self::$enable_coffeescript and $asset['info']['extension'] === 'coffee')
+					{
+						if ( ! self::$_coffeescript_loaded) self::_init_coffeescript();
+
+						CoffeeScript\Init::load();
+						$contents = CoffeeScript\Compiler::compile($contents);
+					}
+					elseif ( ! self::$enable_coffeescript and $asset['info']['extension'] === 'coffee')
+					{
+						$contents = '';
+					}
+				}
+
+				// Or add to combine var (if we're combining)
+				self::$_assets[$type][$group]['combined'] .= "\n".$contents;
+			}
+
+			// New file name
+			$file_name = self::$_assets[$type][$group]['cache_file_name'] = $file_prefix.self::$_assets[$type][$group]['last_modified'].".".$type;
+
+			// Now minify/less if we choose so
+			if ($type === 'css')
+			{
+				$output = self::$_assets[$type][$group]['combined'];
+
+				// Less
+				if (self::$enable_less)
+				{
+					self::_init_less();
+					$output = self::$_less->parse($output);
+				}
+
+				// Minify CSS
+				if (self::$minify_css)
+				{
+					self::_init_cssmin();
+					$output = trim(CSSMin::minify($output, array(
+						'currentDir' => str_replace(site_url(), '', self::$base_url).'/',
+					)));
+				}
+
+				// Add to output
+				self::$_assets[$type][$group]['output'] = $output;
+				unset($output);
+			}
+			elseif ($type === 'js')
+			{
+				$output = self::$_assets[$type][$group]['combined'];
+
+				// Minify JS
+				if (self::$minify_js)
+				{
+					self::_init_jsmin();
+					self::$_assets[$type][$group]['output'] = trim(JSMin::minify($output));
+				}
+
+				// Add to output
+				self::$_assets[$type][$group]['output'] = $output;
+				unset($output);
+			}
+
+			// Once it's processed remove vars we dont need
+			unset(self::$_assets[$type][$group]['combined']);
+
+			// And finnaly we create the actual cached files
+			self::_cache_assets($type);
+		}
+
+		// Update cache info
+		self::_update_cache_info();
+
+		// End benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::process(".$type.", ".$group.")_end");
+	}
+
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	/**
+	 * Process all CSS @imports and parse URL's
+	 * @param  string $contents
+	 * @param  string $import_dir
+	 * @return array
+	 */
+	public static function _process_imports($contents = '', $import_dir = null, $asset_location = null)
+	{
+		// Start benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::process_imports()_start");
+
+		$last_modified = 0;
+
+		// Process URL's
+		$contents = self::_process_urls($contents, $asset_location);
+		
+		// Find @import calls
+		$imports_exist = preg_match_all("/@import\s+(.*);/", $contents, $imports);
+
+		// List of import files
+		$import_file_list = array();
+
+		// If @import exist add them
+		if ($imports_exist and is_array($imports) and isset($imports[1]) and is_array($imports[1]))
+		{
+			foreach ($imports[1] as $import_key=>$import)
+			{
+				$import_file = trim($import, " \"");
+
+				// Is a directory set
+				if ($import_dir) $import_file = $import_dir.'/'.$import_file;
+
+				// Add to list
+				$import_file_list[] = $import_file;
+
+				// Path info
+				$import_info     = pathinfo($import_file);
+				$import_info_dir = ($import_info['dirname'] and $import_info['dirname'] !== ".") ? $import_info['dirname'] : null;
+				
+				// Path to file
+				$import_file_path = reduce_double_slashes(self::$css_path.'/'.$import_file);
+
+				// Get modified date
+				$import_modified = filemtime(realpath($import_file_path));
+				if ($import_modified > $last_modified) $last_modified = $import_modified;
+
+				// Get contents
+				$import_contents = read_file($import_file_path);
+
+				// And add to main contents
+				$contents = str_replace($imports[0][$import_key], $import_contents, $contents);
+
+				// Nested imports?
+				$import_result = self::_process_imports($contents, $import_info_dir);
+				if ($import_result)
+				{
+					$contents = $import_result['contents'];
+
+					// Add to list
+					if ($import_result['file_list']) $import_file_list = array_unique(array_merge($import_file_list, $import_result['file_list']));
+
+					// Check modified time
+					if ($import_result['last_modified'] > $last_modified) $last_modified = $import_result['last_modified'];
+				}
+			}
+		}
+
+		// End benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::process_imports()_end");
+
+		return array(
+			'last_modified' => $last_modified,
+			'contents'      => $contents,
+			'file_list'     => $import_file_list,
+		);
+	}
+
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	/**
+	 * Find all URL's and process em accordingly
+	 * @param  string $contents
+	 * @param  string $asset_location
+	 * @return string
+	 */
+	private static function _process_urls($contents = null, $asset_location = null)
+	{
+		// Parse URL's
+		preg_match_all("/url\((\"|'|)?((.*\.(png|gif|jpg))(\"|'|))\)/Ui", $contents, $matches);
+
+		if (isset($matches[2]) and $matches[2])
+		{
+			if ($asset_location) $asset_location = dirname($asset_location).'/';
+			else                 $asset_location = '';
+
+			foreach ($matches[2] as $match)
+			{
+				$href     = trim($match, " '\"");
+				$new_href = '';
+				$base     = reduce_double_slashes(self::$css_url.'/'.$asset_location);
+
+				if ( ! $href) $new_href = $base;
+
+				// href="http://..." ==> href isn't relative
+				$rel_parsed = parse_url($href);
+				if (array_key_exists('scheme', $rel_parsed)) $new_href = $href;
+
+				// Add an extra character so that, if it ends in a /, we don't lose the last piece.
+				$base_parsed = parse_url("$base ");
+				// if it's just server.com and no path, then put a / there.
+				if (!array_key_exists('path', $base_parsed)) $base_parsed = parse_url("$base/ ");
+
+				// href="/ ==> throw away current path.
+				if ($href{0} === "/") $path = $href;
+				else                  $path = dirname($base_parsed['path']) . "/$href";
+
+				// bla/./bloo ==> bla/bloo
+				$path = preg_replace('~/\./~', '/', $path);
+
+				// resolve /../
+				// loop through all the parts, popping whenever there's a .., pushing otherwise.
+				$parts = array();
+				foreach (explode('/', preg_replace('~/+~', '/', $path)) as $part)
+				{
+					if ($part === "..")  array_pop($parts);
+					elseif ($part != "") $parts[] = $part;
+				}
+
+				$new_href = ((array_key_exists('scheme', $base_parsed)) ? $base_parsed['scheme'] . '://' . $base_parsed['host'] : "") . "/" . implode("/", $parts);
+				$new_href = str_replace("http://", "//", $new_href);
+
+				$contents = str_replace($href, $new_href, $contents);
+			}
+		}
+
+		return $contents;
+	}
+
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	/**
+	 * Find last modified time in list of files
+	 * @param  string $type  - css or js (can be null)
+	 * @param  string $group - name of group so we can fetch the file list
+	 * @return integer
+	 */
+	public static function last_modified($type = null, $group = null)
+	{
+		$last_modified = 0;
+
+		// Start benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::last_modified(".$type.", ".$group.")_start");
+
+		// Get file path
+		if ($type === 'css')    $path = self::$css_path;
+		elseif ($type === 'js') $path = self::$js_path;
+
+		// Get files
+		$files = array();
+		if ($type and ! $group or ($type and ! isset(self::$_cache_info->{$type}->{$group})))
+		{
+			$files = directory_map($path, 1);
+		}
+		elseif ($type and $group and isset(self::$_cache_info->{$type}->{$group}->file_list))
+		{
+			$files = self::$_cache_info->{$type}->{$group}->file_list;
+		}
+
+		foreach ($files as $file)
+		{
+			if ( ! is_array($file))
+			{
+				$file_modified = filemtime($path."/".$file);
+				if ($file_modified > $last_modified) $last_modified = $file_modified;
+			}
+			else
+			{
+				$subfiles = directory_map($path.'/'.$file, 1);
+
+				foreach ($subfiles as $subfile)
+				{
+					if ( ! is_array($subfile))
+					{
+						$subfile_modified = filemtime($path."/".$file);
+						if ($subfile_modified > $last_modified) $last_modified = $subfile_modified;
+					}
+				}
+			}
+		}
+
+		// End benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::last_modified(".$type.", ".$group.")_end");
+
+		return $last_modified;
+	}
+
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	/**
+	 * Cache all assets of this type
+	 * @param  string $type
+	 */
+	private static function _cache_assets($type = null)
+	{
+		// Start benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::cache_assets()_start");
+
+		// Auto clear cache directory?
+		if ($type == 'css' and (self::$auto_clear_cache or self::$auto_clear_css_cache) and ! self::$auto_cleared_css_cache)
+		{
+			self::clear_css_cache(self::$group);
+			self::$auto_cleared_css_cache = true;
+		}
+		
+		if ($type == 'js' and (self::$auto_clear_cache or self::$auto_clear_js_cache) and ! self::$auto_cleared_js_cache)
+		{
+			self::clear_js_cache(self::$group);
+			self::$auto_cleared_js_cache = true;
+		}
+
+		// Loop through groups
+		foreach (self::$_assets[$type] as $key=>$assets_group)
+		{
+			$file_path = self::$cache_path."/".$assets_group['cache_file_name'];
+			
+			write_file($file_path, $assets_group['output']);
+
+			// Remove contents after caching
+			unset(self::$_assets[$type][$key]['output']);
+		}
+
+		// End benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::cache_assets()_end");
+	}
+
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	/**
+	 * Get/parse contents of cache info file
+	 * @return object
+	 */
+	private static function _get_cache_info()
+	{
+		// Start benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::_get_cache_info()_start");
+
+		self::$_cache_info = @json_decode(read_file(self::$cache_path.'/'.self::$_cache_info_file));
+		
+		// End benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::_get_cache_info()_end");
+	}
+
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	/**
+	 * Displays cahce info
+	 * @return string
+	 */
+	public static function echo_cache_info()
+	{
+		echo '<pre>'; print_r(self::$_cache_info); echo '</pre>';
+	}
+
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	/**
+	 * Update cache info file
+	 */
+	public static function _update_cache_info()
+	{
+		// Start benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::_update_cache_info()_start");
+
+		// We need to update the info file
+		foreach (self::$_assets as $key_type=>$assets_type)
+		{
+			foreach ($assets_type as $key_group=>$assets_group)
+			{
+				// Remove output
+				unset(self::$_assets[$key_type][$key_group]['output']);
+
+				// Add group to info
+				self::$_cache_info->{$key_type}->{$key_group}->cache_file_name = $assets_group['cache_file_name'];
+				self::$_cache_info->{$key_type}->{$key_group}->last_modified   = $assets_group['last_modified'];
+				self::$_cache_info->{$key_type}->{$key_group}->file_list       = $assets_group['file_list'];
+			}
+		}
+
+		write_file(self::$cache_path.'/'.self::$_cache_info_file, json_encode(self::$_cache_info));
+
+		// End benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::_update_cache_info()_end");
+	}
+
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	/**
+	 * Generate and output HTML tags
+	 * @param  string  $type
+	 * @param  boolean $echo
+	 * @return string
+	 */
+	private static function _generate_tags($type = null, $echo = true)
+	{
+		if ( ! self::$group) $group = self::$default_group[$type];
+		else                 $group = self::$group;
+
+		// Get list of assets
+		$assets_group = self::$_assets[$type][$group];
+
+		// File name
+		if ( ! isset($assets_group['cache_file_name'])) $assets_group['cache_file_name'] = self::$_cache_info->{$type}->{$group}->cache_file_name;
+
+		// File and tag
+		$file = self::$cache_url.'/'.$assets_group['cache_file_name'];
+		$tag  = self::tag($file, $type, false);
+
+		if ($echo) echo   $tag;
+		else       return $tag;
+	}
+
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	/**
+	 * Display a HTML tag
+	 * @param  string  $file
+	 * @param  string  $type
+	 * @param  boolean $echo
+	 * @return string
+	 */
+	public static function tag($file = null, $type = null, $echo = true)
+	{
+		if ($type === 'css')
+		{
+			if (self::$html5) $tag = '<link rel="stylesheet" href="'.$file.'">'.PHP_EOL;
+			else              $tag = '<link rel="stylesheet" type="text/css" href="'.$file.'" />'.PHP_EOL;
+		}
+		elseif ($type === 'js')
+		{
+			if (self::$html5) $tag = '<script src="'.$file.'"></script>'.PHP_EOL;
+			else              $tag = '<script src="'.$file.'" type="text/javascript" charset="utf-8"></script>'.PHP_EOL;
+		}
+
+		if ($echo) echo   $tag;
+		else       return $tag;
+	}
+
+	
 	/* ------------------------------------------------------------------------------------------ */
 	
 	/**
 	 * Delete cached files
 	 * @param  string $type
-	 * @param  string $asset_file
+	 * @param  string $group
 	 */
-	public static function clear_cache($type = null, $asset_file = null, $group = null)
+	public static function clear_cache($type = null, $group = null)
 	{
-		self::init();
-
+		// Get all cached files
 		$files = directory_map(self::$cache_path, 1);
 		
 		if ($files)
 		{
 			foreach ($files as $file)
 			{
-				if ( ! is_array($file))
+				if ($group)
+				{
+
+				}
+				else
 				{
 					$file_path = reduce_double_slashes(self::$cache_path.'/'.$file);
 					$file_info = pathinfo($file_path);
-					
-					// Clear single file cache
-					if ($asset_file)
-					{
-						$dev_file_name = substr($file, 15); // Get the real filename, without the timestamp prefix
-						
-						// Compare file name and remove if necesary
-						if ($dev_file_name == $asset_file)
-						{
-							unlink($file_path);
-							//echo 'Deleted asset: '.$file."<br>\n";
-						}
-					}
 
-					// Clear a group of files
-					elseif ($group)
+					if ($type === 'css')
 					{
-						// Only the group prefix
-						if (stripos($file_info['filename'], $group.".") === 0)
-						{
-							unlink($file_path);
-							//echo 'Deleted asset: '.$file."<br>\n";
-						}
+						if (isset($file_info['extension']) and strtolower($file_info['extension']) === 'css') unlink($file_path);
 					}
-					
-					// Or all files
+					elseif ($type === 'js')
+					{
+						if (isset($file_info['extension']) and strtolower($file_info['extension']) === 'js') unlink($file_path);
+					}
 					else
 					{
-						if (is_file($file_path) and $file_info)
-						{
-							// Delete the CSS files
-							if ($file_info['extension'] == 'css' and ( ! $type or $type == 'css'))
-							{
-								unlink($file_path);
-								//echo 'Deleted CSS: '.$file."<br>\n";
-							}
-							
-							// Delete the JS files
-							if ($file_info['extension'] == 'js' and ( ! $type or $type == 'js'))
-							{
-								unlink($file_path);
-								//echo 'Deleted JS: '.$file."<br>\n";
-							}
-						}
+						if (isset($file_info['extension']) and (strtolower($file_info['extension']) === 'css' or strtolower($file_info['extension']) === 'js')) unlink($file_path);
 					}
 				}
 			}
 		}
 	}
-	
-	
+
+
 	/* ------------------------------------------------------------------------------------------ */
 	
 	/**
 	 * Delete cached CSS files
 	 * @param  string $asset_file
 	 */
-	public static function clear_css_cache($asset_file = null, $group = null)
+	public static function clear_css_cache($group = null)
 	{
-		return self::clear_cache('css', $asset_file, $group);
+		return self::clear_cache('css', $group);
 	}
 	
 	
@@ -873,11 +884,19 @@ class Assets {
 	 * Delete cached JS files
 	 * @param  string $asset_file
 	 */
-	public static function clear_js_cache($asset_file = null, $group = null)
+	public static function clear_js_cache($group = null)
 	{
-		return self::clear_cache('js', $asset_file, $group);
+		return self::clear_cache('js', $group);
 	}
+
 	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	public static function clear_assets()
+	{
+		self::$_assets = array('js' => array(), 'css' => array());
+	}
+
 	
 	
 	/* ------------------------------------------------------------------------------------------ */
@@ -916,9 +935,133 @@ class Assets {
 	
 	
 	/* ------------------------------------------------------------------------------------------ */
-	/* !/===> Configuration */
+	/* !/===> Initialization and configuration */
 	/* ------------------------------------------------------------------------------------------ */
 	
+	
+	/**
+	 * Library initialization
+	 * @param  array $cfg
+	 */
+	public static function init($cfg = null)
+	{
+		// Clean previous assets if needed
+		self::clear_assets();
+
+		if ( ! self::$_ci)
+		{
+			self::$_ci =& get_instance();
+
+			// Start benchmark
+			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init()_start");
+
+			// Add config to library
+			if ($cfg)
+			{
+				self::configure(array_merge($cfg), config_item('assets'));
+			}
+			else
+			{
+				self::configure(config_item('assets'));
+			}
+
+			// Get cache info
+			self::_get_cache_info();
+		}
+
+		// End benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init()_end");
+	}
+
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	private static function _init_cssmin()
+	{
+		if (self::$minify_js and ! self::$freeze and ! self::$_cssmin_loaded)
+		{
+			// Start benchmark
+			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init_cssmin()_start");
+
+			// Load
+			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/cssmin.php'));
+			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/cssmin.php'));
+			self::$_cssmin_loaded = true;
+
+			// End benchmark
+			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init_cssmin()_end");
+		}
+	}
+
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	private static function _init_jsmin()
+	{
+		if (self::$minify_js and ! self::$freeze and ! self::$_jsmin_loaded)
+		{
+			// Start benchmark
+			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init_jsmin()_start");
+
+			// Load
+			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/jsmin.php'));
+			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/jsmin.php'));
+			self::$_jsmin_loaded = true;
+
+			// End benchmark
+			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init_jsmin()_end");
+		}
+	}
+
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	private static function _init_less()
+	{
+		if ( ! self::$freeze and ! self::$_less_loaded)
+		{
+			// Start benchmark
+			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init_less()_start");
+
+			// Load LessPHP
+			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/lessc.php'));
+			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/lessc.php'));
+			
+			// Initialize
+			self::$_less = new lessc();
+			self::$_less->importDir = self::$css_path.'/';
+			self::$_less_loaded = true;
+
+			// End benchmark
+			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init_less()_end");
+		}
+	}
+
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	private static function _init_coffeescript()
+	{
+		if ( ! self::$freeze and ! self::$_coffeescript_loaded)
+		{
+			// Start benchmark
+			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init_coffeescript()_start");
+
+			// Load classes
+			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/coffeescript/Init.php'));
+			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/coffeescript/coffeescript.php'));
+
+			// Initialize
+			CoffeeScript\Init::load();
+			self::$_coffeescript_loaded = true;
+
+			// End benchmark
+			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init_coffeescript()_end");
+		}
+	}
+
+	
+	/* ------------------------------------------------------------------------------------------ */
 	
 	/**
 	 * Library configuration
@@ -926,6 +1069,9 @@ class Assets {
 	 */
 	public static function configure($cfg = null)
 	{
+		// Start benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::configure()_start");
+
 		$cfg = array_merge(config_item('assets'), $cfg);
 		
 		if ($cfg and is_array($cfg))
@@ -939,6 +1085,9 @@ class Assets {
 
 		// Prepare all the paths and URI's
 		self::_paths();
+
+		// End benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::configure()_end");
 	}
 
 	
@@ -991,10 +1140,12 @@ class Assets {
 	
 	/**
 	 * Setup paths
-	 * @return [type] [description]
 	 */
 	private static function _paths()
 	{
+		// Start benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::paths()_start");
+
 		// Set the assets base path
 		self::$base_path = reduce_double_slashes(realpath(self::$assets_dir));
 		
@@ -1011,35 +1162,40 @@ class Assets {
 		self::$cache_path = reduce_double_slashes(self::$base_path .'/'.self::$cache_dir);
 		self::$cache_url  = reduce_double_slashes(self::$base_url  .'/'.self::$cache_dir);
 		
-		// Check if all directories exist
-		if ( ! is_dir(self::$js_path))
+		if ( ! self::$freeze)
 		{
-			if ( ! @mkdir(self::$js_path, 0755))    exit('Error with JS directory.');
+			// Check if all directories exist
+			if ( ! is_dir(self::$js_path))
+			{
+				if ( ! @mkdir(self::$js_path, 0755))    exit('Error with JS directory.');
+			}
+			
+			if ( ! is_dir(self::$css_path))
+			{
+				if ( ! @mkdir(self::$css_path, 0755))   exit('Error with CSS directory.');
+			}
+			
+			if ( ! is_dir(self::$cache_path))
+			{
+				if ( ! @mkdir(self::$cache_path, 0777)) exit('Error with CACHE directory.');
+			}
+			
+			// Try to make the cache direcory writable
+			if (is_dir(self::$cache_path) and ! is_really_writable(self::$cache_path))
+			{
+				@chmod(self::$cache_path, 0777);
+			}
+			
+			// If it's still not writable throw error
+			if ( ! is_dir(self::$cache_path) or ! is_really_writable(self::$cache_path))
+			{
+				exit('Error with CACHE directory.');
+			}
 		}
-		
-		if ( ! is_dir(self::$css_path))
-		{
-			if ( ! @mkdir(self::$css_path, 0755))   exit('Error with CSS directory.');
-		}
-		
-		if ( ! is_dir(self::$cache_path))
-		{
-			if ( ! @mkdir(self::$cache_path, 0777)) exit('Error with CACHE directory.');
-		}
-		
-		// Try to make the cache direcory writable
-		if (is_dir(self::$cache_path) and ! is_really_writable(self::$cache_path))
-		{
-			@chmod(self::$cache_path, 0777);
-		}
-		
-		// If it's still not writable throw error
-		if ( ! is_dir(self::$cache_path) or ! is_really_writable(self::$cache_path))
-		{
-			exit('Error with CACHE directory.');
-		}
+
+		// End benchmark
+		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::paths()_end");
 	}
-	
 	
 	/* ------------------------------------------------------------------------------------------ */
 	
