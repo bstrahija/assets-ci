@@ -516,14 +516,11 @@ class Assets {
 				// Get contents
 				$import_contents = read_file($import_file_path);
 
-				// And add to main contents
-				$contents = str_replace($imports[0][$import_key], $import_contents, $contents);
-
 				// Nested imports?
-				$import_result = self::_process_imports($contents, $import_info_dir);
+				$import_result = self::_process_imports($import_contents, $import_info_dir, $import_file);
 				if ($import_result)
 				{
-					$contents = $import_result['contents'];
+					$import_contents = $import_result['contents'];
 
 					// Add to list
 					if ($import_result['file_list']) $import_file_list = array_unique(array_merge($import_file_list, $import_result['file_list']));
@@ -531,6 +528,9 @@ class Assets {
 					// Check modified time
 					if ($import_result['last_modified'] > $last_modified) $last_modified = $import_result['last_modified'];
 				}
+
+				// And add to main contents
+				$contents = str_replace($imports[0][$import_key], $import_contents, $contents);
 			}
 		}
 
@@ -641,7 +641,7 @@ class Assets {
 		{
 			if ( ! is_array($file))
 			{
-				$file_modified = filemtime($path."/".$file);
+				$file_modified = (int) @filemtime($path."/".$file);
 				if ($file_modified > $last_modified) $last_modified = $file_modified;
 			}
 			else
@@ -859,6 +859,7 @@ class Assets {
 					else
 					{
 						if (isset($file_info['extension']) and (strtolower($file_info['extension']) === 'css' or strtolower($file_info['extension']) === 'js')) unlink($file_path);
+						if (isset($file_info['extension']) and strtolower($file_info['extension']) === 'cache') unlink($file_path);
 					}
 				}
 			}
