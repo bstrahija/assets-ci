@@ -415,14 +415,14 @@ class Assets {
 				$output = self::$_assets[$type][$group]['combined'];
 
 				// Less
-				if (self::$enable_less)
+				if (self::$enable_less and ! self::$freeze)
 				{
 					self::_init_less();
 					$output = self::$_less->parse($output);
 				}
 
 				// Minify CSS
-				if (self::$minify_css)
+				if (self::$minify_css and ! self::$freeze)
 				{
 					self::_init_cssmin();
 					$output = trim(CSSMin::minify($output, array(
@@ -1107,35 +1107,6 @@ class Assets {
 		self::_paths();
 	}
 
-	
-	/* ------------------------------------------------------------------------------------------ */
-	
-	/**
-	 * Set a prefix for cached files (instead of the timestamp)
-	 * @param string $prefix
-	 */
-	public static function set_prefix($prefix = null, $type = null)
-	{
-		self::init();
-
-		if ($prefix)
-		{
-			if ($type == 'css')
-			{
-				self::$prefix_css = $prefix;
-			}
-			elseif ($type == 'js')
-			{
-				self::$prefix_js  = $prefix;
-			}
-			else
-			{
-				self::$prefix_css = $prefix;
-				self::$prefix_js  = $prefix;
-			}
-		}
-	}
-	
 	
 	/* ------------------------------------------------------------------------------------------ */
 	
