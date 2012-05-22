@@ -320,6 +320,7 @@ class Assets {
 
 			// Add to container
 			self::$_assets[$type][$group]['src'][]       = $tmp_asset;
+			self::$_assets[$type][$group]['file_list']   = (array) self::$_assets[$type][$group]['file_list'];
 			self::$_assets[$type][$group]['file_list'][] = $tmp_asset['file'];
 		}
 
