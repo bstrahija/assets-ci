@@ -68,11 +68,11 @@ class yy_Call extends yy_Base
     {
       $idt = $this->tab.TAB;
 
-      return 
+      return
         "(function(func, args, ctor) {\n"
       . "{$idt}ctor.prototype = func.prototype;\n"
       . "{$idt}var child = new ctor, result = func.apply(child, args), t = typeof result;\n"
-      . "{$idt}return t === \"object\" || t == \"function\" ? result || child : child;\n"
+      . "{$idt}return t == \"object\" || t == \"function\" ? result || child : child;\n"
       . "{$this->tab}})(".$this->variable->compile($options, LEVEL_LIST).", $splat_args, function(){})";
     }
 
@@ -175,14 +175,14 @@ class yy_Call extends yy_Base
   {
     $method = $options['scope']->method;
 
-    if ( ! $method)
+    if ($method === NULL)
     {
       throw new SyntaxError('cannot call super outside of a function.');
     }
 
     $name = isset($method->name) ? $method->name : NULL;
 
-    if ( ! $name)
+    if ($name === NULL)
     {
       throw new SyntaxError('cannot call super on an anonymous function.');
     }
