@@ -1011,7 +1011,7 @@ class Assets {
 	
 	private static function _init_cssmin()
 	{
-		if (self::$minify_js and ! self::$freeze and ! self::$_cssmin_loaded)
+		if (self::$minify_css and ! self::$freeze and ! self::$_cssmin_loaded)
 		{
 			// Start benchmark
 			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init_cssmin()_start");
