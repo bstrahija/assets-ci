@@ -958,6 +958,8 @@ class Assets {
 	 */
 	public static function img($path = null, $tag = false, $properties = null)
 	{
+		self::init();
+		
 		$img_path = reduce_double_slashes(self::$img_url.'/'.$path);
 
 		// Properties
