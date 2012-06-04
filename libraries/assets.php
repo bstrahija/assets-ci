@@ -51,6 +51,10 @@ class Assets {
 	public static $enable_less          = true;  // Enable LESS CSS parser
 	public static $enable_coffeescript  = true;  // Enable CoffeeScript parser
 	public static $freeze               = false; // Disable all processing once the assets are cached (for production)
+
+	// CssMin config
+	public static $cssmin_plugins       = array();
+	public static $cssmin_filters       = array();
 	
 	// Flags
 	public static  $auto_cleared_css_cache = false;
@@ -435,9 +439,8 @@ class Assets {
 				if (self::$minify_css and ! self::$freeze)
 				{
 					self::_init_cssmin();
-					$output = trim(CSSMin::minify($output, array(
-						'currentDir' => str_replace(site_url(), '', self::$base_url).'/',
-					)));
+
+					$output = trim(CSSMin::minify($output, self::$cssmin_filters, self::$cssmin_plugins));
 				}
 
 				// Add to output
@@ -1021,6 +1024,9 @@ class Assets {
 			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/cssmin.php'));
 			self::$_cssmin_loaded = true;
 
+			// Set current dir for css min
+			if ( ! isset(self::$cssmin_filters['currentDir'])) self::$cssmin_filters['currentDir'] = str_replace(site_url(), '', self::$base_url).'/';
+
 			// End benchmark
 			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init_cssmin()_end");
 		}
@@ -1106,7 +1112,7 @@ class Assets {
 		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::configure()_start");
 
 		$cfg = array_merge(config_item('assets'), $cfg);
-		
+
 		if ($cfg and is_array($cfg))
 		{
 			foreach ($cfg as $key=>$val)
@@ -1115,6 +1121,10 @@ class Assets {
 				//echo 'CONFIG: ', $key, ' :: ', $val, '<br>';
 			}
 		}
+
+		// CssMin configuration
+		self::$cssmin_filters = self::$_ci->config->item('assets_cssmin_filters');
+		self::$cssmin_plugins = self::$_ci->config->item('assets_cssmin_plugins');
 
 		// Prepare all the paths and URI's
 		self::_paths();
