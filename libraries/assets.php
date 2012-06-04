@@ -68,9 +68,8 @@ class Assets {
 	 * @param  array  $files
 	 * @return string
 	 */
-	public static function css($files = null)
+	public static function css($files = null, $attributes = null)
 	{
-
 		self::init();
 
 		// Start benchmark
@@ -78,7 +77,7 @@ class Assets {
 
 		self::$group = null;
 		// Add to process container
-		self::_add_assets($files, null, 'css');
+		self::_add_assets($files, null, 'css', $attributes);
 
 		// And process it
 		if (self::$_cache_info and self::$freeze) {}
@@ -100,7 +99,7 @@ class Assets {
 	 * @param  array  $files
 	 * @return string
 	 */
-	public static function css_group($group = null, $files = null)
+	public static function css_group($group = null, $files = null, $attributes = null)
 	{
 		self::$group = $group;
 
@@ -110,7 +109,7 @@ class Assets {
 		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::css_group(".$group.")_start");
 
 		// Add to process container
-		self::_add_assets($files, $group, 'css');
+		self::_add_assets($files, $group, 'css', $attributes);
 
 		// And process it
 		if (self::$_cache_info and self::$freeze) {}
@@ -280,7 +279,7 @@ class Assets {
 	 * @param string $group
 	 * @param string $type
 	 */
-	private static function _add_assets($assets = null, $group = null, $type = null)
+	private static function _add_assets($assets = null, $group = null, $type = null, $attributes = null)
 	{
 		// Start benchmark
 		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::add-assets()_start");
@@ -290,6 +289,9 @@ class Assets {
 		// Set last modified time to 0
 		self::$_assets[$type][$group]['last_modified']       = 0;
 		self::$_assets[$type][$group]['last_modified_human'] = "0000-00-00 00:00:00";
+
+		// Attributes
+		self::$_assets[$type][$group]['attributes'] = $attributes;
 
 		// Prepare some vars
 		self::$_assets[$type][$group]['combined']  = '';
@@ -400,6 +402,13 @@ class Assets {
 					elseif ( ! self::$enable_coffeescript and $asset['info']['extension'] === 'coffee')
 					{
 						$contents = '';
+					}
+
+					// Minify JS
+					if (self::$minify_js)
+					{
+						self::_init_jsmin();
+						$contents = trim(JSMin::minify($contents));
 					}
 				}
 
@@ -785,12 +794,34 @@ class Assets {
 		// Get list of assets
 		$assets_group = self::$_assets[$type][$group];
 
+		// Default attributes
+		$attributes = '';
+		if ($type === 'css')
+		{
+			// Default attributes
+			if ( ! isset($assets_group['attributes']['rel']))     $assets_group['attributes']['rel'] = 'stylesheet';
+		}
+		elseif ($type === 'js')
+		{
+			// Default attributes
+			if ( ! isset($assets_group['attributes']['charset']) and ! self::$html5) $assets_group['attributes']['charset'] = 'utf-8';
+		}
+
+		// Custom attributes
+		if (isset($assets_group['attributes']) and $assets_group['attributes'])
+		{
+			foreach ($assets_group['attributes'] as $att=>$val)
+			{
+				$attributes .= ' '.$att.'="'.$val.'"';
+			}
+		}
+
 		// File name
 		if ( ! isset($assets_group['cache_file_name'])) $assets_group['cache_file_name'] = self::$_cache_info->{$type}->{$group}->cache_file_name;
 
 		// File and tag
 		$file = self::$cache_url.'/'.$assets_group['cache_file_name'];
-		$tag  = self::tag($file, $type, false);
+		$tag  = self::tag($file, $type, false, $attributes);
 
 		if ($echo) echo   $tag;
 		else       return $tag;
@@ -806,17 +837,17 @@ class Assets {
 	 * @param  boolean $echo
 	 * @return string
 	 */
-	public static function tag($file = null, $type = null, $echo = true)
+	public static function tag($file = null, $type = null, $echo = true, $attributes = '')
 	{
 		if ($type === 'css')
 		{
-			if (self::$html5) $tag = '<link rel="stylesheet" href="'.$file.'">'.PHP_EOL;
-			else              $tag = '<link rel="stylesheet" type="text/css" href="'.$file.'" />'.PHP_EOL;
+			if (self::$html5) $tag = '<link href="'.$file.'"'.$attributes.'>'.PHP_EOL;
+			else              $tag = '<link type="text/css" href="'.$file.'"'.$attributes.' />'.PHP_EOL;
 		}
 		elseif ($type === 'js')
 		{
-			if (self::$html5) $tag = '<script src="'.$file.'"></script>'.PHP_EOL;
-			else              $tag = '<script src="'.$file.'" type="text/javascript" charset="utf-8"></script>'.PHP_EOL;
+			if (self::$html5) $tag = '<script src="'.$file.'"'.$attributes.'></script>'.PHP_EOL;
+			else              $tag = '<script src="'.$file.'" type="text/javascript"'.$attributes.'></script>'.PHP_EOL;
 		}
 
 		if ($echo) echo   $tag;

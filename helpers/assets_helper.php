@@ -10,15 +10,27 @@
  */
 
 
-function assets_css($assets = null)
+function assets_css($assets = null, $attributes = null)
 {
-	Assets::css($assets);
+	Assets::css($assets, $attributes);
+}
+
+
+function assets_css_group($group = null, $assets = null, $attributes = null)
+{
+	Assets::css_group($group, $assets, $attributes);
 }
 
 
 function assets_js($assets = null)
 {
 	Assets::js($assets);
+}
+
+
+function assets_js_group($group = null, $assets = null)
+{
+	Assets::js_group($group, $assets);
 }
 
 
