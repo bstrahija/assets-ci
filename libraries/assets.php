@@ -693,13 +693,13 @@ class Assets {
 		// Auto clear cache directory?
 		if ($type == 'css' and (self::$auto_clear_cache or self::$auto_clear_css_cache) and ! self::$auto_cleared_css_cache)
 		{
-			self::clear_css_cache(self::$group);
+			self::clear_css_cache(self::$group, false);
 			self::$auto_cleared_css_cache = true;
 		}
 		
 		if ($type == 'js' and (self::$auto_clear_cache or self::$auto_clear_js_cache) and ! self::$auto_cleared_js_cache)
 		{
-			self::clear_js_cache(self::$group);
+			self::clear_js_cache(self::$group, false);
 			self::$auto_cleared_js_cache = true;
 		}
 
@@ -794,40 +794,43 @@ class Assets {
 		if ( ! self::$group) $group = self::$default_group[$type];
 		else                 $group = self::$group;
 
-		// Get list of assets
-		$assets_group = self::$_assets[$type][$group];
+		if (isset(self::$_assets[$type][$group]))
+		{
+			// Get list of assets
+			$assets_group = self::$_assets[$type][$group];
 
-		// Default attributes
-		$attributes = '';
-		if ($type === 'css')
-		{
 			// Default attributes
-			if ( ! isset($assets_group['attributes']['rel']))     $assets_group['attributes']['rel'] = 'stylesheet';
-		}
-		elseif ($type === 'js')
-		{
-			// Default attributes
-			if ( ! isset($assets_group['attributes']['charset']) and ! self::$html5) $assets_group['attributes']['charset'] = 'utf-8';
-		}
-
-		// Custom attributes
-		if (isset($assets_group['attributes']) and $assets_group['attributes'])
-		{
-			foreach ($assets_group['attributes'] as $att=>$val)
+			$attributes = '';
+			if ($type === 'css')
 			{
-				$attributes .= ' '.$att.'="'.$val.'"';
+				// Default attributes
+				if ( ! isset($assets_group['attributes']['rel']))     $assets_group['attributes']['rel'] = 'stylesheet';
 			}
+			elseif ($type === 'js')
+			{
+				// Default attributes
+				if ( ! isset($assets_group['attributes']['charset']) and ! self::$html5) $assets_group['attributes']['charset'] = 'utf-8';
+			}
+
+			// Custom attributes
+			if (isset($assets_group['attributes']) and $assets_group['attributes'])
+			{
+				foreach ($assets_group['attributes'] as $att=>$val)
+				{
+					$attributes .= ' '.$att.'="'.$val.'"';
+				}
+			}
+
+			// File name
+			if ( ! isset($assets_group['cache_file_name'])) $assets_group['cache_file_name'] = self::$_cache_info->{$type}->{$group}->cache_file_name;
+
+			// File and tag
+			$file = self::$cache_url.'/'.$assets_group['cache_file_name'];
+			$tag  = self::tag($file, $type, false, $attributes);
+
+			if ($echo) echo   $tag;
+			else       return $tag;
 		}
-
-		// File name
-		if ( ! isset($assets_group['cache_file_name'])) $assets_group['cache_file_name'] = self::$_cache_info->{$type}->{$group}->cache_file_name;
-
-		// File and tag
-		$file = self::$cache_url.'/'.$assets_group['cache_file_name'];
-		$tag  = self::tag($file, $type, false, $attributes);
-
-		if ($echo) echo   $tag;
-		else       return $tag;
 	}
 
 	
@@ -865,11 +868,13 @@ class Assets {
 	 * @param  string $type
 	 * @param  string $group
 	 */
-	public static function clear_cache($type = null, $group = null)
+	public static function clear_cache($type = null, $group = null, $init = true)
 	{
+		if ($init) self::init();
+
 		// Get all cached files
 		$files = directory_map(self::$cache_path, 1);
-		
+
 		if ($files)
 		{
 			foreach ($files as $file)
@@ -899,6 +904,8 @@ class Assets {
 				}
 			}
 		}
+
+		self::_get_cache_info();
 	}
 
 
@@ -908,9 +915,9 @@ class Assets {
 	 * Delete cached CSS files
 	 * @param  string $asset_file
 	 */
-	public static function clear_css_cache($group = null)
+	public static function clear_css_cache($group = null, $init = true)
 	{
-		return self::clear_cache('css', $group);
+		return self::clear_cache('css', $group, $init);
 	}
 	
 	
@@ -920,9 +927,9 @@ class Assets {
 	 * Delete cached JS files
 	 * @param  string $asset_file
 	 */
-	public static function clear_js_cache($group = null)
+	public static function clear_js_cache($group = null, $init = true)
 	{
-		return self::clear_cache('js', $group);
+		return self::clear_cache('js', $group, $init);
 	}
 
 	
@@ -959,7 +966,7 @@ class Assets {
 	public static function img($path = null, $tag = false, $properties = null)
 	{
 		self::init();
-		
+
 		$img_path = reduce_double_slashes(self::$img_url.'/'.$path);
 
 		// Properties
