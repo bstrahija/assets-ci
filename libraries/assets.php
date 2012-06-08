@@ -5,10 +5,10 @@
  *
  * @author 		Boris Strahija <boris@creolab.hr>
  * @copyright 	Copyright (c) 2012, Boris Strahija, http://creolab.hr
- * @version 	1.5.0
+ * @version 	1.5.1
  */
 
-define('ASSETS_VERSION', '1.5.0');
+define('ASSETS_VERSION', '1.5.1');
 
 
 class Assets {
