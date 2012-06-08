@@ -17,7 +17,7 @@ class Assets {
 	protected static $_less;
 	protected static $_cache_info;
 	protected static $_cache_info_file = 'info.cache';
-	protected static $_enable_benchmark = false;
+	protected static $_enable_benchmark = true;
 
 
 	// All the assets go in here
@@ -766,6 +766,14 @@ class Assets {
 			{
 				// Remove output
 				unset(self::$_assets[$key_type][$key_group]['output']);
+
+				// Create empty placeholders if needed
+				if (self::$_cache_info === null)
+				{
+					self::$_cache_info                            = new stdClass;
+					self::$_cache_info->{$key_type}               = new stdClass;
+					self::$_cache_info->{$key_type}->{$key_group} = new stdClass;
+				}
 
 				// Add group to info
 				self::$_cache_info->{$key_type}->{$key_group}->cache_file_name = $assets_group['cache_file_name'];
