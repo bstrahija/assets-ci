@@ -21,11 +21,17 @@ Now you can use the helper methods in your views like this:
 	<?php Assets::css(array('bootstrap.less', 'init.css', 'style.css')); ?>
 	<?php Assets::js(array('libs/jquery.js', 'script.js', 'bean.coffee')); ?>
 
+You can load the javascript files from the CDN using:
+
+	<?php Assets::cdn(array('jquery','jquery-validate','jqueryui'));?>
+
 There's also a method for clearing all cached files:
 	
 	<?php Assets::clear_cache(); ?>
 
 The default configuration assumes your assets directory is in the root of your project. Be sure to set the permissions for the cache directory so it can be writeable.
+
+Note about "freeze" option: This basicly tells the lib not to scan the files and folders for new and changed files, but to pull all the info from the info.cache file. This speeds up the whole process a little bit. Useful for apps with a bigger load in production.
 
 ### LESS / CoffeeScript
 
