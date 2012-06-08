@@ -16,8 +16,8 @@ class Assets {
 	protected static $_ci;
 	protected static $_less;
 	protected static $_cache_info;
-	protected static $_cache_info_file = 'info.cache';
-	protected static $_enable_benchmark = true;
+	protected static $_cache_info_file  = 'info.cache';
+	protected static $_enable_benchmark = false;
 
 
 	// All the assets go in here
