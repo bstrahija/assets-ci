@@ -21,11 +21,17 @@ Now you can use the helper methods in your views like this:
 	<?php Assets::css(array('bootstrap.less', 'init.css', 'style.css')); ?>
 	<?php Assets::js(array('libs/jquery.js', 'script.js', 'bean.coffee')); ?>
 
+You can load the javascript files from the CDN using:
+
+	<?php Assets::cdn(array('jquery','jquery-validate','jqueryui'));?>
+
 There's also a method for clearing all cached files:
 	
 	<?php Assets::clear_cache(); ?>
 
 The default configuration assumes your assets directory is in the root of your project. Be sure to set the permissions for the cache directory so it can be writeable.
+
+Note about "freeze" option: This basicly tells the lib not to scan the files and folders for new and changed files, but to pull all the info from the info.cache file. This speeds up the whole process a little bit. Useful for apps with a bigger load in production.
 
 ### LESS / CoffeeScript
 
@@ -68,9 +74,9 @@ You can also generate the img tag directly using a similar syntax as in the Code
 
 ## Frameworks / Libraries
 
-The library has been tested with Twitter Bootstrap 2.0.1 and HTML5 Boilerplate 3.0. It wont work with the latest Bootstrap 2.0.2 because of a problem in LessPHP. I hope this will be fixed soon. And if you happen to use the library with a different framework (bootstrap), give me a shout and I'll put it on this list. So here it is:
+The library has been tested with Twitter Bootstrap 2.0.4 and HTML5 Boilerplate 3.0. It wont work with the latest Bootstrap 2.0.2 because of a problem in LessPHP. I hope this will be fixed soon. And if you happen to use the library with a different framework (bootstrap), give me a shout and I'll put it on this list. So here it is:
 
-* Twitter Bootstrap 2.0.1 (2.0.2 not working yet) LESS
+* Twitter Bootstrap 2.0.4
 * HTML5 Boilerplate 3.0
 
 ## Directory structure example
