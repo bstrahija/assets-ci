@@ -74,9 +74,9 @@ You can also generate the img tag directly using a similar syntax as in the Code
 
 ## Frameworks / Libraries
 
-The library has been tested with Twitter Bootstrap 2.0.4 and HTML5 Boilerplate 3.0. It wont work with the latest Bootstrap 2.0.2 because of a problem in LessPHP. I hope this will be fixed soon. And if you happen to use the library with a different framework (bootstrap), give me a shout and I'll put it on this list. So here it is:
+The library has been tested with Twitter Bootstrap 2.0.1 and HTML5 Boilerplate 3.0. It wont work with the latest Bootstrap 2.0.2 because of a problem in LessPHP. I hope this will be fixed soon. And if you happen to use the library with a different framework (bootstrap), give me a shout and I'll put it on this list. So here it is:
 
-* Twitter Bootstrap 2.0.4
+* Twitter Bootstrap 2.0.1 (2.0.2 not working yet) LESS
 * HTML5 Boilerplate 3.0
 
 ## Directory structure example
