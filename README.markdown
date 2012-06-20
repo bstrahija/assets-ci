@@ -72,15 +72,12 @@ You can also generate the img tag directly using a similar syntax as in the Code
 
     <?php echo Assets::img('logo.png', true, array('title' => 'Logo')); ?>
 
-## SSL Support
-By default Assets uses codeIgniter's `$config['base_url']` config to determine the URL for your assets. By adding an `https` to the config item you can force all items to use SSL. This can be over-written in Assets by defining the following:
+### Overriding CI base_url
+By default Assets uses codeIgniter's `$config['base_url']` config to determine the URL for your assets. However this can be overwritten by defining the following configuration item:
 ```php
 $config['assets']['base_url'] = 'https://example.com';
-$config['assets']['js_url'] = 'https://example.com';
-$config['assets']['css_url'] = 'https://example.com';
-$config['assets']['img_url'] = 'https://example.com';
-$config['assets']['cache_url'] = 'https://example.com';
 ```
+This will allow you to define your assets on a seperate static domain, or specify `https` for assets seperately from your CI application.
 
 ## Frameworks / Libraries
 
