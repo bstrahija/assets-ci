@@ -961,7 +961,7 @@ class Assets {
 	 */
 	public static function url($path = null)
 	{
-		return reduce_double_slashes(self::$base_url.'/'.$path);
+		return self::$base_url.'/'.$path;
 	}
 
 	
@@ -975,14 +975,29 @@ class Assets {
 	{
 		self::init();
 
-		$img_path = reduce_double_slashes(self::$img_url.'/'.$path);
+		$img_path = self::$img_url.'/'.$path;
 
 		// Properties
 		if ($properties) $properties['src'] = $img_path;
+		echo '<pre>'; print_r($properties); echo '</pre>';
 
 		// Tag?
-		if ($tag) return img($properties);
-		else      return $img_path;
+		if ($tag)
+		{
+			$img = img($properties, false);
+
+			// Remove site_url if base_url is set as auto protocol
+			if (stripos(self::$base_url, '//') === 0)
+			{
+				$img = str_replace('src="'.base_url(), 'src="', $img);
+			}
+
+			return $img;
+		}
+		else
+		{
+			return $img_path;
+		}
 	}
 
 	
@@ -1181,18 +1196,23 @@ class Assets {
 		self::$base_path = reduce_double_slashes(realpath(self::$assets_dir));
 		
 		// Now set the assets base URL
-		self::$base_url = reduce_double_slashes(config_item('base_url').'/'.self::$assets_dir);
-		
+		if ( ! self::$base_url) self::$base_url = reduce_double_slashes(config_item('base_url').'/'.self::$assets_dir);
+		else                    self::$base_url = self::$base_url.self::$assets_dir;
+
+		// Auto protocol
+		if (stripos(self::$base_url, '//') === 0) $slash = '/';
+		else                                      $slash = '';
+
 		// And finally the paths and URL's to the css and js assets
 		self::$js_path    = reduce_double_slashes(self::$base_path .'/'.self::$js_dir);
-		self::$js_url     = reduce_double_slashes(self::$base_url  .'/'.self::$js_dir);
+		self::$js_url     = $slash.reduce_double_slashes(self::$base_url  .'/'.self::$js_dir);
 		self::$css_path   = reduce_double_slashes(self::$base_path .'/'.self::$css_dir);
-		self::$css_url    = reduce_double_slashes(self::$base_url  .'/'.self::$css_dir);
+		self::$css_url    = $slash.reduce_double_slashes(self::$base_url  .'/'.self::$css_dir);
 		self::$img_path   = reduce_double_slashes(self::$base_path .'/'.self::$img_dir);
-		self::$img_url    = reduce_double_slashes(self::$base_url  .'/'.self::$img_dir);
+		self::$img_url    = $slash.reduce_double_slashes(self::$base_url  .'/'.self::$img_dir);
 		self::$cache_path = reduce_double_slashes(self::$base_path .'/'.self::$cache_dir);
-		self::$cache_url  = reduce_double_slashes(self::$base_url  .'/'.self::$cache_dir);
-		
+		self::$cache_url  = $slash.reduce_double_slashes(self::$base_url  .'/'.self::$cache_dir);
+
 		if ( ! self::$freeze)
 		{
 			// Check if all directories exist
@@ -1223,6 +1243,7 @@ class Assets {
 				exit('Error with CACHE directory.');
 			}
 		}
+		echo '<pre>'; print_r(self::$base_url); echo '</pre>';
 
 		// End benchmark
 		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::paths()_end");
