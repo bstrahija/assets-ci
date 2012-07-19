@@ -204,6 +204,8 @@ class Assets {
 			// Start benchmark
 			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::cdn()_start");
 
+			self::init();
+
 			$html = '';
 
 			foreach ($assets as $asset)
@@ -979,7 +981,6 @@ class Assets {
 
 		// Properties
 		if ($properties) $properties['src'] = $img_path;
-		echo '<pre>'; print_r($properties); echo '</pre>';
 
 		// Tag?
 		if ($tag)
@@ -1243,7 +1244,6 @@ class Assets {
 				exit('Error with CACHE directory.');
 			}
 		}
-		echo '<pre>'; print_r(self::$base_url); echo '</pre>';
 
 		// End benchmark
 		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::paths()_end");
