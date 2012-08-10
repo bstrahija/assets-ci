@@ -575,6 +575,10 @@ class Assets {
 
 		if (isset($matches[2]) and $matches[2])
 		{
+			// Unique URL's
+			if (is_array($matches[2])) $matches[2] = array_unique($matches[2]);
+
+			// Set location for assets
 			if ($asset_location) $asset_location = dirname($asset_location).'/';
 			else                 $asset_location = '';
 
