@@ -8,7 +8,7 @@
  * @version 	1.5.1
  */
 
-define('ASSETS_VERSION', '1.5.1');
+define('ASSETS_VERSION', '1.5.0');
 
 
 class Assets {
