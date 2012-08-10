@@ -586,7 +586,7 @@ class Assets {
 			{
 				$href     = trim($match, " '\"");
 				$new_href = '';
-				$base     = reduce_double_slashes(self::$css_url.'/'.$asset_location);
+				$base     = self::$css_url.'/'.$asset_location;
 
 				if ( ! $href) $new_href = $base;
 
@@ -599,24 +599,27 @@ class Assets {
 				// if it's just server.com and no path, then put a / there.
 				if (!array_key_exists('path', $base_parsed)) $base_parsed = parse_url("$base/ ");
 
-				// href="/ ==> throw away current path.
-				if ($href{0} === "/") $path = $href;
-				else                  $path = dirname($base_parsed['path']) . "/$href";
-
-				// bla/./bloo ==> bla/bloo
-				$path = preg_replace('~/\./~', '/', $path);
-
-				// resolve /../
-				// loop through all the parts, popping whenever there's a .., pushing otherwise.
-				$parts = array();
-				foreach (explode('/', preg_replace('~/+~', '/', $path)) as $part)
+				if ( ! isset($rel_parsed['host']) or (isset($rel_parsed['host']) and isset($base_parsed['host']) and ($rel_parsed['host'] == $base_parsed['host'])))
 				{
-					if ($part === "..")  array_pop($parts);
-					elseif ($part != "") $parts[] = $part;
-				}
+					// href="/ ==> throw away current path.
+					if ($href{0} === "/") $path = $href;
+					else                  $path = dirname($base_parsed['path']) . "/$href";
 
-				$new_href = ((array_key_exists('scheme', $base_parsed)) ? $base_parsed['scheme'] . '://' . $base_parsed['host'] : "") . "/" . implode("/", $parts);
-				$new_href = str_replace("http://", "//", $new_href);
+					// bla/./bloo ==> bla/bloo
+					$path = preg_replace('~/\./~', '/', $path);
+
+					// resolve /../
+					// loop through all the parts, popping whenever there's a .., pushing otherwise.
+					$parts = array();
+					foreach (explode('/', preg_replace('~/+~', '/', $path)) as $part)
+					{
+						if ($part === "..")  array_pop($parts);
+						elseif ($part != "") $parts[] = $part;
+					}
+
+					$new_href = ((array_key_exists('scheme', $base_parsed)) ? $base_parsed['scheme'] . '://' . $base_parsed['host'] : "") . "/" . implode("/", $parts);
+					if (substr($path, 0, 2) == '//' and substr($new_href, 0, 2) != '//' and substr($new_href, 0, 1) == '/') $new_href = '/' . $new_href;
+				}
 
 				$contents = str_replace($href, $new_href, $contents);
 			}
