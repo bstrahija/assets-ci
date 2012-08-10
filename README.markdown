@@ -72,6 +72,13 @@ You can also generate the img tag directly using a similar syntax as in the Code
 
     <?php echo Assets::img('logo.png', true, array('title' => 'Logo')); ?>
 
+### Overriding CI base_url
+By default Assets uses codeIgniter's `$config['base_url']` config to determine the URL for your assets. However this can be overwritten by defining the following configuration item:
+```php
+$config['assets']['base_url'] = 'https://example.com';
+```
+This will allow you to define your assets on a seperate static domain, or specify `https` for assets seperately from your CI application.
+
 ## Frameworks / Libraries
 
 The library has been tested with Twitter Bootstrap 2.0.1 and HTML5 Boilerplate 3.0. It wont work with the latest Bootstrap 2.0.2 because of a problem in LessPHP. I hope this will be fixed soon. And if you happen to use the library with a different framework (bootstrap), give me a shout and I'll put it on this list. So here it is:
