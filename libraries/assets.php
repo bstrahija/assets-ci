@@ -770,12 +770,9 @@ class Assets {
 				unset(self::$_assets[$key_type][$key_group]['output']);
 
 				// Create empty placeholders if needed
-				if (self::$_cache_info === null)
-				{
-					self::$_cache_info                            = new stdClass;
-					self::$_cache_info->{$key_type}               = new stdClass;
-					self::$_cache_info->{$key_type}->{$key_group} = new stdClass;
-				}
+				if (self::$_cache_info === null)                             self::$_cache_info = new stdClass;
+				if ( ! isset(self::$_cache_info->{$key_type}))               self::$_cache_info->{$key_type} = new stdClass;
+				if ( ! isset(self::$_cache_info->{$key_type}->{$key_group})) self::$_cache_info->{$key_type}->{$key_group} = new stdClass;
 
 				// Add group to info
 				self::$_cache_info->{$key_type}->{$key_group}->cache_file_name = $assets_group['cache_file_name'];
