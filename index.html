@@ -21,7 +21,7 @@
   </head>
 
   <body>
-    <a id="forkme_banner" href="https://github.com/bstrahija/assets">Fork Me on GitHub</a>
+    <a id="forkme_banner" href="https://github.com/bstrahija/assets">View on GitHub</a>
     <div class="shell">
 
       <header>
@@ -41,24 +41,15 @@
         </span>
       </section>
 
+
       <span class="banner-fix"></span>
+
 
       <section id="main_content">
         <h1>Simple Assets Library</h1>
 
 <p>A simple assets library that has the ability to combine and minify your JavaScript and CSS assets.
 Additionally there's a <a href="http://leafo.net/lessphp/">LessCSS</a> compiler and a <a href="https://github.com/alxlit/coffeescript-php">CoffeeScript</a> compiler.</p>
-
-<h2>Installation</h2>
-
-<p>The library can be installed as a <a href="http://getsparks.org/packages/assets/versions/HEAD/show">CodeIgniter spark</a> like this:</p>
-
-<pre><code>php tools/spark install -v1.0.0 assets
-</code></pre>
-
-<p>If you don't have Sparks just head on over to their <a href="http://getsparks.org/install">setup page</a> and follow the instructions.</p>
-
-<p>You can also install it as a normal library by placing 3rd party libraries into the CodeIgniter third_party directory.</p>
 
 <h2>Third Party Libraries</h2>
 
@@ -79,12 +70,19 @@ Now you can use the helper methods in your views like this:</p>
 &lt;?php Assets::js(array('libs/jquery.js', 'script.js', 'bean.coffee')); ?&gt;
 </code></pre>
 
+<p>You can load the javascript files from the CDN using:</p>
+
+<pre><code>&lt;?php Assets::cdn(array('jquery','jquery-validate','jqueryui'));?&gt;
+</code></pre>
+
 <p>There's also a method for clearing all cached files:</p>
 
 <pre><code>&lt;?php Assets::clear_cache(); ?&gt;
 </code></pre>
 
 <p>The default configuration assumes your assets directory is in the root of your project. Be sure to set the permissions for the cache directory so it can be writeable.</p>
+
+<p>Note about "freeze" option: This basicly tells the lib not to scan the files and folders for new and changed files, but to pull all the info from the info.cache file. This speeds up the whole process a little bit. Useful for apps with a bigger load in production.</p>
 
 <h3>LESS / CoffeeScript</h3>
 
@@ -104,9 +102,9 @@ Now you can use the helper methods in your views like this:</p>
 &lt;?php Assets::css_group('login',  array('login.css')); ?&gt;
 </code></pre>
 
-<h3>Importing CSS files (<a href="/import" class="user-mention">@import</a>)</h3>
+<h3>Importing CSS files (<a href="https://github.com/import" class="user-mention">@import</a>)</h3>
 
-<p>Including files via <em><a href="/import" class="user-mention">@import</a></em> should work just fine, just be sure to use proper paths. Example of a stylesheet would be something like this:</p>
+<p>Including files via <em><a href="https://github.com/import" class="user-mention">@import</a></em> should work just fine, just be sure to use proper paths. Example of a stylesheet would be something like this:</p>
 
 <pre><code>@import "bootstrap/bootstrap.less";
 @import "libs/fancybox.css";
@@ -116,7 +114,7 @@ body { background: #f2f2f2; }
 …
 </code></pre>
 
-<p>Just keep in mind when using <em><a href="/import" class="user-mention">@import</a></em> that those files are not scanned for changes and the cache wont be cleared in case you change a file that is included via <em><a href="/import" class="user-mention">@import</a></em>.</p>
+<p>Just keep in mind when using <em><a href="https://github.com/import" class="user-mention">@import</a></em> that those files are not scanned for changes and the cache wont be cleared in case you change a file that is included via <em><a href="https://github.com/import" class="user-mention">@import</a></em>.</p>
 
 <h3>Images</h3>
 
@@ -129,6 +127,15 @@ body { background: #f2f2f2; }
 
 <pre><code>&lt;?php echo Assets::img('logo.png', true, array('title' =&gt; 'Logo')); ?&gt;
 </code></pre>
+
+<h3>Overriding CI base_url</h3>
+
+<p>By default Assets uses codeIgniter's <code>$config['base_url']</code> config to determine the URL for your assets. However this can be overwritten by defining the following configuration item:</p>
+
+<div class="highlight"><pre><span class="x">$config['assets']['base_url'] = 'https://example.com';</span>
+</pre></div>
+
+<p>This will allow you to define your assets on a seperate static domain, or specify <code>https</code> for assets seperately from your CI application.</p>
 
 <h2>Frameworks / Libraries</h2>
 
