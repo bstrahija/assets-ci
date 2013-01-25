@@ -6,8 +6,10 @@ class yy_For extends yy_While
 {
   public $children = array('body', 'source', 'guard', 'step');
 
-  function constructor($body, $source)
+  function constructor()
   {
+    list($body, $source) = args(func_get_args(), 2);
+
     $this->source = $source['source'];
     $this->guard = isset($source['guard']) ? $source['guard'] : NULL;
     $this->step = isset($source['step']) ? $source['step'] : NULL;
@@ -156,7 +158,7 @@ class yy_For extends yy_While
 
     if ($this->guard)
     {
-      if ($body->expressions)
+      if (count($body->expressions) > 1)
       {
         array_unshift($body->expressions, yy('If', yy('Parens', $this->guard)->invert(), yy('Literal', 'continue')));
       }

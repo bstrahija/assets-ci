@@ -62,7 +62,7 @@ class yy_Range extends yy_Base
     {
       return $node->contains(function($n)
       {
-        return $n instanceof yy_Literal && $n->value === 'arguments' && ! $n->as_key();
+        return ($n instanceof yy_Literal) && $n->value === 'arguments' && ! $n->as_key;
       });
 
       return FALSE;
@@ -205,11 +205,19 @@ class yy_Range extends yy_Base
       list($this->step, $this->step_var) = $step->cache($options, LEVEL_LIST);
     }
 
-    list($this->from_num, $this->to_num) = array(preg_match(SIMPLENUM, $this->from_var), preg_match(SIMPLENUM, $this->to_var));
-
-    if (isset($this->step_var) && $this->step_var)
+    if (preg_match(SIMPLENUM, $this->from_var, $m))
     {
-      $this->step_num = preg_match(SIMPLENUM, $this->step_var);
+      $this->from_num = $m[0];
+    }
+
+    if (preg_match(SIMPLENUM, $this->to_var, $m))
+    {
+      $this->to_num = $m[0];
+    }
+
+    if (isset($this->step_var) && $this->step_var && preg_match(SIMPLENUM, $this->step_var, $m))
+    {
+      $this->step_num = $m[0];
     }
   }
 }

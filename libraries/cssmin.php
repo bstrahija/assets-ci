@@ -2237,7 +2237,6 @@ class CssMin
                         $paths[] = $subDirectory;
                         }
                     }
-                    }
                 }
             $files = glob($path . "*.php", 0);
             if (is_array($files))

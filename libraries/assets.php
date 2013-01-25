@@ -44,6 +44,7 @@ class Assets {
 	public static $minify               = false; // Minify all
 	public static $minify_js            = true;
 	public static $minify_css           = true;
+	public static $pack_js              = true;
 	public static $auto_clear_cache     = false; // Automaticly clear all cache before creating new cache files
 	public static $auto_clear_css_cache = false; // Or clear just cached CSS files
 	public static $auto_clear_js_cache  = false; // Or just cached JS files
@@ -61,6 +62,7 @@ class Assets {
 	public static  $auto_cleared_js_cache  = false;
 	private static $_cssmin_loaded         = false;
 	private static $_jsmin_loaded          = false;
+	private static $_jspacker_loaded       = false;
 	private static $_less_loaded           = false;
 	private static $_coffeescript_loaded   = false;
 
@@ -409,13 +411,6 @@ class Assets {
 					{
 						$contents = '';
 					}
-
-					// Minify JS
-					if (self::$minify_js)
-					{
-						self::_init_jsmin();
-						$contents = trim(JSMin::minify($contents));
-					}
 				}
 
 				// Or add to combine var (if we're combining)
@@ -457,7 +452,15 @@ class Assets {
 				if (self::$minify_js)
 				{
 					self::_init_jsmin();
-					self::$_assets[$type][$group]['output'] = trim(JSMin::minify($output));
+					$output = trim(JSMin::minify($output));
+				}
+
+				// Pack JS
+				if (self::$pack_js)
+				{
+					self::_init_jspacker();
+					$packer = new JavaScriptPacker($output, 'Normal', true, false);
+					$output = trim($packer->pack());
 				}
 
 				// Add to output
@@ -1086,6 +1089,26 @@ class Assets {
 
 			// End benchmark
 			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init_jsmin()_end");
+		}
+	}
+
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	private static function _init_jspacker()
+	{
+		if (self::$pack_js and ! self::$freeze and ! self::$_jspacker_loaded)
+		{
+			// Start benchmark
+			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init_jspacker()_start");
+
+			// Load
+			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/jspacker.php'));
+			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/jspacker.php'));
+			self::$_jspacker_loaded = true;
+
+			// End benchmark
+			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init_jspacker()_end");
 		}
 	}
 

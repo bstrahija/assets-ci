@@ -12,9 +12,9 @@
 $config['assets_cssmin_filters'] = array(
 	"ImportImports"                 => false,
 	"RemoveComments"                => true, 
-	"RemoveEmptyRulesets"           => true,
-	"RemoveEmptyAtBlocks"           => true,
-	"ConvertLevel3AtKeyframes"      => false,
+	"RemoveEmptyRulesets"           => false,
+	"RemoveEmptyAtBlocks"           => false,
+	"ConvertLevel3AtKeyframes"      => true,
 	"ConvertLevel3Properties"       => false,
 	"Variables"                     => true,
 	"RemoveLastDelarationSemiColon" => true,

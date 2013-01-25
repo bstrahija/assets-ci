@@ -27,8 +27,10 @@ class yy_Assign extends yy_Base
     return $this;
   }
 
-  function assigns($name)
+  function assigns()
   {
+    list($name) = args(func_get_args(), 1);
+
     if ($this->context === 'object')
     {
       return $this->value->assigns($name);
@@ -43,9 +45,10 @@ class yy_Assign extends yy_Base
   {
     list($left, $right) = $this->variable->cache_reference($options);
 
-    if ( ! count($left->properties) && $left->base instanceof yy_Literal && $left->base->value !== 'this' && ! $options['scope']->check($left->base->value))
+    if ( ! count($left->properties) && $left->base instanceof yy_Literal &&
+      $left->base->value !== 'this' && ! $options['scope']->check($left->base->value))
     {
-      throw new Error('the variable "'.$this->left->base->value.'" can\'t be assigned with '.$this->context.' because it has not been defined.');
+      throw new Error('the variable "'.$left->base->value.'" can\'t be assigned with '.$this->context.' because it has not been defined.');
     }
 
     if (strpos($this->context, '?') > -1)
@@ -279,7 +282,7 @@ class yy_Assign extends yy_Base
       }
 
       $tmp = yy('Assign', $obj, $val, NULL, array('param' => $this->param, 'subpattern' => TRUE));
-      $assigns[] = $tmp->compile($options, LEVEL_TOP);
+      $assigns[] = $tmp->compile($options, LEVEL_LIST);
     }
 
     if ( ! ($top || $this->subpattern))
@@ -336,12 +339,12 @@ class yy_Assign extends yy_Base
     return $options['level'] > LEVEL_TOP ? "({$code})" : $code;
   }
 
-  function is_statement($options)
+  function is_statement($options = NULL)
   {
     return isset($options['level']) && $options['level'] === LEVEL_TOP && $this->context && strpos($this->context, '?') > -1;
   }
 
-  function unfold_soak($options)
+  function unfold_soak($options = NULL)
   {
     return unfold_soak($options, $this, 'variable');
   }

@@ -8,8 +8,6 @@ class yy_Slice extends yy_Base
 
   function constructor($range)
   {
-    parent::constructor();
-
     $this->range = $range;
 
     return $this;
@@ -38,7 +36,7 @@ class yy_Slice extends yy_Base
       else
       {
         $compiled = $to->compile($options, LEVEL_ACCESS);
-        $to_str .= "({$compiled} + 1) || 9e9";
+        $to_str .= "{$compiled} + 1 || 9e9";
       }
     }
 
