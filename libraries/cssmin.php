@@ -2226,7 +2226,16 @@ class CssMin
                 {
                 foreach ($subDirectorys as $subDirectory)
                     {
-                    $paths[] = $subDirectory;
+                    /**
+                     * Ignore the 'coffescript' folder and all subfolders, this tries to load those files in an improper 
+                     * order and causes a fatal error. These assets are loaded in the proper order when the coffeescript 
+                     * compiler is initialized (coffeescript\Init.php) so it's not necessary here anyway.
+                     * @author Steven Woodson <me@stevenwoodson.com>
+                     */
+                    if ( !stristr($subDirectory, 'coffeescript') )
+                        {
+                        $paths[] = $subDirectory;
+                        }
                     }
                 }
             $files = glob($path . "*.php", 0);

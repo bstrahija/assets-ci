@@ -206,7 +206,14 @@ class Lexer
       return $tags;
     }
 
-    $name = 'CoffeeScript\Parser::YY_'.(isset($map[$name]) ? $map[$name] : $name);
+    $prefix = 'CoffeeScript\Parser::YY_';
+
+    // In cases where there's no matching constant (see below) $name may
+    // already be prefixed.
+    if (strpos($name, $prefix) !== 0)
+    {
+      $name = $prefix.(isset($map[$name]) ? $map[$name] : $name);
+    }
 
     // Don't return the original name if there's no matching constant, in some
     // cases intermediate token types are created and the value returned by this
@@ -989,12 +996,12 @@ class Lexer
 
     if (preg_match('/^0o([0-7]+)/', $number, $octal_literal))
     {
-      $number = '0x'.base_convert(intval($octal_literal[1], 8), 8, 16);
+      $number = '0x'.base_convert($octal_literal[1], 8, 16);
     }
 
     if (preg_match('/^0b([01]+)/', $number, $binary_literal))
     {
-      $number = '0x'.base_convert(intval($binary_literal[1], 2), 2, 16);
+      $number = '0x'.base_convert($binary_literal[1], 2, 16);
     }
 
     $this->token('NUMBER', $number);
@@ -1056,7 +1063,7 @@ class Lexer
     {
       if ($wanted !== 'OUTDENT')
       {
-        $this->error("unmateched $tag");
+        $this->error("unmatched $tag");
       }
 
       $this->indent -= $size = last($this->indents);

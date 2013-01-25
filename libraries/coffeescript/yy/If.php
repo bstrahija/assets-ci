@@ -50,7 +50,7 @@ class yy_If extends yy_Base
     $alt = ($tmp = $this->else_body_node()) ? $tmp->compile($options, LEVEL_LIST) : 'void 0';
     $code = "{$cond} ? {$body} : {$alt}";
 
-    return (isset($options['level']) && $options['level'] > LEVEL_COND) ? "({$code})" : $code;
+    return (isset($options['level']) && $options['level'] >= LEVEL_COND) ? "({$code})" : $code;
   }
 
   function compile_statement($options)
@@ -152,7 +152,7 @@ class yy_If extends yy_Base
     return $this;
   }
 
-  function unfold_soak()
+  function unfold_soak($options = NULL)
   {
     return $this->soak ? $this : FALSE;
   }
