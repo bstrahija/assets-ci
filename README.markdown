@@ -33,9 +33,9 @@ The default configuration assumes your assets directory is in the root of your p
 
 Note about "freeze" option: This basicly tells the lib not to scan the files and folders for new and changed files, but to pull all the info from the info.cache file. This speeds up the whole process a little bit. Useful for apps with a bigger load in production.
 
-### LESS / CoffeeScript
+### LESS / SASS / CoffeeScript
 
-Files with extensions .less and .coffee will automatically be processed through appropriate libraries.
+Files with extensions .less, .sass, .scss and .coffee will automatically be processed through appropriate libraries.
 
 ### Groups
 
