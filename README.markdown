@@ -1,11 +1,11 @@
 # Simple Assets Library
 
-A simple assets library that has the ability to combine and minify your JavaScript and CSS assets.
-Additionally there's a <a href="http://leafo.net/lessphp/">LessCSS</a> compiler and a <a href="https://github.com/alxlit/coffeescript-php">CoffeeScript</a> compiler.
+A simple assets library that has the ability to combine, minify and obfuscate your JavaScript and CSS assets.
+Additionally there's a <a href="http://leafo.net/lessphp/">LessPHP</a> compiler,  a <a href="https://github.com/richthegeek/phpsass">PHPSass</a> compiler and a <a href="https://github.com/alxlit/coffeescript-php">CoffeeScript</a> compiler.
 
 ## Third Party Libraries
 
-The libraries <a href="https://github.com/rgrove/jsmin-php/">JSMin</a>, <a href="http://code.google.com/p/cssmin/">CSSMin</a>, <a href="http://leafo.net/lessphp/">LessPHP</a> and <a href="https://github.com/alxlit/coffeescript-php">CoffeeScript-PHP</a> are all created by third parties, but they're included in this package for convenience.
+The libraries <a href="https://github.com/rgrove/jsmin-php/">JSMin</a>, <a href="http://code.google.com/p/cssmin/">CSSMin</a>, <a href="http://leafo.net/lessphp/">LessPHP</a>, <a href="https://github.com/richthegeek/phpsass">PHPSass</a>, <a href="http://joliclic.free.fr/php/javascript-packer/en/">JS Packer</a> and <a href="https://github.com/alxlit/coffeescript-php">CoffeeScript-PHP</a> are all created by third parties, but they're included in this package for convenience.
 
 ## Requirements
 
@@ -33,9 +33,9 @@ The default configuration assumes your assets directory is in the root of your p
 
 Note about "freeze" option: This basicly tells the lib not to scan the files and folders for new and changed files, but to pull all the info from the info.cache file. This speeds up the whole process a little bit. Useful for apps with a bigger load in production.
 
-### LESS / CoffeeScript
+### LESS / SASS / CoffeeScript
 
-Files with extensions .less and .coffee will automatically be processed through appropriate libraries.
+Files with extensions .less, .sass, .scss and .coffee will automatically be processed through appropriate libraries.
 
 ### Groups
 

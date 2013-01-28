@@ -15,6 +15,7 @@ class Assets {
 	
 	protected static $_ci;
 	protected static $_less;
+	protected static $_sass;
 	protected static $_cache_info;
 	protected static $_cache_info_file  = 'info.cache';
 	protected static $_enable_benchmark = false;
@@ -50,6 +51,7 @@ class Assets {
 	public static $auto_clear_js_cache  = false; // Or just cached JS files
 	public static $html5                = true;  // Use HTML5 tags
 	public static $enable_less          = true;  // Enable LESS CSS parser
+	public static $enable_sass          = true;  // Enable SASS CSS parser
 	public static $enable_coffeescript  = true;  // Enable CoffeeScript parser
 	public static $freeze               = false; // Disable all processing once the assets are cached (for production)
 
@@ -64,6 +66,7 @@ class Assets {
 	private static $_jsmin_loaded          = false;
 	private static $_jspacker_loaded       = false;
 	private static $_less_loaded           = false;
+	private static $_sass_loaded           = false;
 	private static $_coffeescript_loaded   = false;
 
 	
@@ -387,6 +390,21 @@ class Assets {
 					$import_result = self::_process_imports($contents, null, $asset['file']);
 					$contents      = $import_result['contents'];
 
+					list ( $asset['file_name'], $asset['file_ext']) = explode( '.', $asset['file'] );
+
+					// LESS
+					if (self::$enable_less and ! self::$freeze and $asset['file_ext'] == 'less')
+					{
+						self::_init_less();
+						$contents = self::$_less->parse($contents);
+					}
+					// SASS
+					if (self::$enable_sass and ! self::$freeze and ( $asset['file_ext'] == 'sass' or $asset['file_ext'] == 'scss' ))
+					{
+						self::_init_sass();
+						$contents = self::$_sass->toCss($contents);
+					}
+
 					// Update last modified time
 					if ($import_result['last_modified']  > self::$_assets[$type][$group]['last_modified'])
 					{
@@ -420,17 +438,10 @@ class Assets {
 			// New file name
 			$file_name = self::$_assets[$type][$group]['cache_file_name'] = $file_prefix.self::$_assets[$type][$group]['last_modified'].".".$type;
 
-			// Now minify/less if we choose so
+			// Now minify if we choose so
 			if ($type === 'css')
 			{
 				$output = self::$_assets[$type][$group]['combined'];
-
-				// Less
-				if (self::$enable_less and ! self::$freeze)
-				{
-					self::_init_less();
-					$output = self::$_less->parse($output);
-				}
 
 				// Minify CSS
 				if (self::$minify_css and ! self::$freeze)
@@ -1060,8 +1071,8 @@ class Assets {
 			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init_cssmin()_start");
 
 			// Load
-			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/cssmin.php'));
-			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/cssmin.php'));
+			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/cssmin/cssmin.php'));
+			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/cssmin/cssmin.php'));
 			self::$_cssmin_loaded = true;
 
 			// Set current dir for css min
@@ -1083,8 +1094,8 @@ class Assets {
 			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init_jsmin()_start");
 
 			// Load
-			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/jsmin.php'));
-			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/jsmin.php'));
+			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/jsmin/jsmin.php'));
+			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/jsmin/jsmin.php'));
 			self::$_jsmin_loaded = true;
 
 			// End benchmark
@@ -1103,8 +1114,8 @@ class Assets {
 			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init_jspacker()_start");
 
 			// Load
-			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/jspacker.php'));
-			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/jspacker.php'));
+			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/jspacker/jspacker.php'));
+			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/jspacker/jspacker.php'));
 			self::$_jspacker_loaded = true;
 
 			// End benchmark
@@ -1123,8 +1134,8 @@ class Assets {
 			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init_less()_start");
 
 			// Load LessPHP
-			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/lessc.php'));
-			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/lessc.php'));
+			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/lessc/lessc.php'));
+			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/lessc/lessc.php'));
 			
 			// Initialize
 			self::$_less = new lessc();
@@ -1133,6 +1144,39 @@ class Assets {
 
 			// End benchmark
 			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init_less()_end");
+		}
+	}
+
+	
+	/* ------------------------------------------------------------------------------------------ */
+	
+	private static function _init_sass()
+	{
+		if ( ! self::$freeze and ! self::$_sass_loaded)
+		{
+			// Start benchmark
+			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init_sass()_start");
+
+			// Load PHPSass
+			if (defined('SPARKPATH')) include(reduce_double_slashes(SPARKPATH.'assets/'.ASSETS_VERSION.'/libraries/phpsass/SassParser.php'));
+			else                      include(reduce_double_slashes(APPPATH.'/third_party/assets/phpsass/SassParser.php'));
+			
+			$options = array(
+				'style' => 'expanded',
+				'cache' => FALSE,
+				'syntax' => self::$base_url,
+				'debug' => FALSE,
+				'callbacks' => array(
+					'warn' => 'warn',
+					'debug' => 'debug'
+				),
+			);
+
+			// Initialize
+			self::$_sass = new SassParser( $options );
+
+			// End benchmark
+			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init_sass()_end");
 		}
 	}
 
