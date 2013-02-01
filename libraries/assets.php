@@ -1174,6 +1174,7 @@ class Assets {
 
 			// Initialize
 			self::$_sass = new SassParser( $options );
+			self::$_sass_loaded = true;
 
 			// End benchmark
 			if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::init_sass()_end");
