@@ -43,6 +43,10 @@ There's also a possibility to define groups of assets. This can be useful when f
 
     <?php Assets::js_group('head',   array('libs/modernizr.js')); ?>
     <?php Assets::js_group('footer', array('plugins.js', 'script.js')); ?>
+
+For JS groups you can specify a third parameter to apply JavaScript packer regardless of configured option:
+
+    <?php Assets::js_group('packed', array('plugins.js', 'script.js'), true); ?> 
     
 The same thing will work with CSS files. You can use this to show groups of CSS files for specific pages:
 
