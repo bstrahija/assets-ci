@@ -167,15 +167,19 @@ class Assets {
 	
 	/**
 	 * Display a group of JS tags
-	 * @param  string $group
-	 * @param  array  $files
+	 * @param  string   $group
+	 * @param  array    $files
+	 * @param  boolean  $pack
 	 * @return string
 	 */
-	public static function js_group($group = null, $files = null)
+	public static function js_group($group = null, $files = null, $pack = false)
 	{
 		self::$group = $group;
 
 		self::init();
+
+		// Enable packer for this group
+		if ($pack) self::$pack_js = true;
 
 		// Start benchmark
 		if (self::$_enable_benchmark) self::$_ci->benchmark->mark("Assets::js_group(".$group.")_start");
