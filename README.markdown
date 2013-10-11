@@ -100,3 +100,5 @@ The library has been tested with Twitter Bootstrap 2.0.1 and HTML5 Boilerplate 3
 		/js
 	/sparks
 	/system
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/bstrahija/assets-ci/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
