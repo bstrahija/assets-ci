@@ -635,10 +635,9 @@ class Assets {
 						elseif ($part != "") $parts[] = $part;
 					}
 
-					$new_href = ((array_key_exists('scheme', $base_parsed)) ? $base_parsed['scheme'] . '://' . $base_parsed['host'] : "") . "/" . implode("/", $parts);
+					$new_href = ((array_key_exists('scheme', $base_parsed)) ? $base_parsed['scheme'] . '://' . $base_parsed['host'] : "") . (array_key_exists('port', $base_parsed) ? ":".$base_parsed['port'] : '') . "/" . implode("/", $parts);
 					if (substr($path, 0, 2) == '//' and substr($new_href, 0, 2) != '//' and substr($new_href, 0, 1) == '/') $new_href = '/' . $new_href;
 				}
-
 				$contents = str_replace($href, $new_href, $contents);
 			}
 		}
